@@ -1,11 +1,10 @@
-<!DOCTYPE html><!-- rebuild -->
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>岛屿来信</title>
-<script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.min.js"></script>
-
+<script src="https://cdn.bootcdn.net/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--navy:#1a2744;--gold:#c9a84c;--ink:#2c2416;--paper:#f5f0e8;--cream:#faf6ee;--card:rgba(250,246,238,.72);--card-b:rgba(201,168,76,.2);--sh:rgba(15,26,46,.08)}
@@ -349,19 +348,21 @@ html{font-size:16px}body{font-family:sans-serif;color:var(--ink);background:var(
 <script>
 try{
 const{createApp,ref,reactive,computed,onMounted}=Vue;
-
-// localStorage database helper
+const LCReady=true;
 const DB={
-  _key:"il_db",
-  _get(){try{return JSON.parse(localStorage.getItem(this._key)||"{}")}catch(e){return{}}},
-  _set(d){localStorage.setItem(this._key,JSON.stringify(d))},
-  all(table){const d=this._get();return(d[table]||[]).slice().sort((a,b)=>(b._ts||0)-(a._ts||0))},
-  insert(table,row){const d=this._get();if(!d[table])d[table]=[];row.id=row.id||crypto.randomUUID();row._ts=Date.now();row.created_at=new Date(row._ts).toISOString();d[table].push(row);this._set(d);return row},
-  update(table,id,patch){const d=this._get();if(!d[table])return;(d[table]||[]).forEach(r=>{if(r.id===id)Object.assign(r,patch)});this._set(d)},
-  remove(table,filter){const d=this._get();if(!d[table])return;d[table]=(d[table]||[]).filter(r=>!Object.entries(filter).every(([k,v])=>r[k]===v));this._set(d)},
-  query(table,filter){return this.all(table).filter(r=>Object.entries(filter).every(([k,v])=>r[k]===v))}
+  _k:'il_db',
+  _g(){try{return JSON.parse(localStorage.getItem(this._k)||'{}')}catch(e){return{}}},
+  _s(d){localStorage.setItem(this._k,JSON.stringify(d))},
+  all(t){return(this._g()[t]||[]).slice().sort((a,b)=>(b._ts||0)-(a._ts||0))},
+  add(t,r){const d=this._g();if(!d[t])d[t]=[];r.id=r.id||crypto.randomUUID();r._ts=Date.now();r.createdAt=new Date(r._ts).toISOString();d[t].push(r);this._s(d);return r},
+  set(t,id,p){const d=this._g();if(!d[t])return;d[t].forEach(r=>{if(r.id===id)Object.assign(r,p)});this._s(d)},
+  del(t,f){const d=this._g();if(!d[t])return;d[t]=d[t].filter(r=>!Object.entries(f).every(([k,v])=>r[k]===v));this._s(d)},
+  qry(t,f){return this.all(t).filter(r=>Object.entries(f).every(([k,v])=>r[k]===v))}
 };
 
+
+createApp({
+setup(){
 const nickname=ref(localStorage.getItem('il_nick')||'');
 const nickInput=ref('');
 const tab=ref('feed');
@@ -388,16 +389,16 @@ const feedForm=reactive({content:'',mediaUrl:''});
 async function loadFeed(){
   loadingFeed.value=true;
   try{const r=DB.all('moments').slice(0,20);
-    feedList.value=r.map(o=>({id:o.id,nickname:o.nickname,content:o.content,mediaUrl:o.media_url,ts:new Date(o.created_at),likes:o.likes||0}));
-  }catch(e){console.error(e);showToast("加载失败: "+(e.message||e));}finally{loadingFeed.value=false;}
+    feedList.value=r.map(o=>({id:o.id,nickname:o.nickname,content:o.content,mediaUrl:o.mediaUrl,ts:new Date(o.createdAt),likes:o.likes||0}));
+  }catch(e){console.error(e);}finally{loadingFeed.value=false;}
 }
 async function postFeed(){
   if(!feedForm.content)return;
-  posting.value=true;try{DB.insert('moments',{nickname:nickname.value,content:feedForm.content,media_url:feedForm.mediaUrl,likes:0});
+  posting.value=true;try{DB.add('moments',{nickname:nickname.value,content:feedForm.content,mediaUrl:feedForm.mediaUrl,likes:0});
   showToast('✉ 来信已到达');feedForm.content='';feedForm.mediaUrl='';await loadFeed();}catch(e){showToast('发布失败');console.error(e);}finally{posting.value=false;}
 }
 function likeFeed(m){if(liked[m.id])return;liked[m.id]=true;m.likes=(m.likes||0)+1;
-  try{DB.update('moments',m.id,{likes:m.likes});}catch(e){}}
+  try{DB.set('moments',m.id,{likes:m.likes});}catch(e){}}
 
 // Check-in
 const ciTypes=[{id:'early',icon:'🌅',label:'早起'},{id:'gym',icon:'💪',label:'健身'},{id:'read',icon:'📚',label:'读书'},{id:'other',icon:'✨',label:'自定义'}];
@@ -406,20 +407,20 @@ function ciLabel(id){return(ciTypes.find(t=>t.id===id)||{}).label||id;}
 
 async function doCheckin(type){
   if(todayCI[type])return;
-  try{DB.insert('checkins',{nickname:nickname.value,type:type,date:todayKey()});todayCI[type]=true;showToast('打卡成功！🔥');await loadCheckin();}catch(e){showToast('打卡失败');}
+  try{DB.add('checkins',{nickname:nickname.value,type:type,date:todayKey()});todayCI[type]=true;showToast('打卡成功！🔥');await loadCheckin();}catch(e){showToast('打卡失败');}
 }
 async function loadCheckin(){
   try{
-    const r=DB.query('checkins',{date:todayKey()});
-    todayCheckins.value=r.map(o=>({id:o.id,nickname:o.nickname,type:o.type,ts:new Date(o.created_at)}));
+    const r=DB.qry('checkins',{date:todayKey()});
+    todayCheckins.value=r.map(o=>({id:o.id,nickname:o.nickname,type:o.type,ts:new Date(o.createdAt)}));
     r.filter(o=>o.nickname===nickname.value).forEach(o=>todayCI[o.type]=true);
-    const r2=DB.query('checkins',{nickname:nickname.value}).slice(0,30);
+    const r2=DB.qry('checkins',{nickname:nickname.value}).slice(0,30);
     const dates=[...new Set(r2.map(o=>o.date))].sort().reverse();
     let s=0;for(let i=0;i<dates.length;i++){const exp=new Date(todayKey());exp.setDate(exp.getDate()-i);const ek=exp.toISOString().slice(0,10);if(dates.includes(ek))s++;else break;}myStreak.value=s;
     const r3=DB.all('checkins');const cnt={};
     r3.forEach(o=>{if(!cnt[o.nickname])cnt[o.nickname]=new Set();cnt[o.nickname].add(o.date);});
     ciRank.value=Object.entries(cnt).map(([nick,set])=>({nick,days:set.size})).sort((a,b)=>b.days-a.days).slice(0,10);
-  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
+  }catch(e){console.error(e);}
 }
 
 // Analysis
@@ -446,13 +447,13 @@ const todaySong=ref(null);const songHistory=ref([]);const postingSong=ref(false)
 const songForm=reactive({songName:'',artist:'',reason:'',url:''});
 async function loadSong(){
   try{const r=DB.all('song_recommends').slice(0,20);
-    const all=r.map(o=>({id:o.id,nickname:o.nickname,songName:o.song_name,artist:o.artist,reason:o.reason,url:o.url,date:o.date||todayKey()}));
+    const all=r.map(o=>({id:o.id,nickname:o.nickname,songName:o.songName,artist:o.artist,reason:o.reason,url:o.url,date:o.date||todayKey()}));
     todaySong.value=all.find(s=>s.date===todayKey())||null;songHistory.value=all.filter(s=>s.date!==todayKey()).slice(0,10);
-  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
+  }catch(e){console.error(e);}
 }
 async function postSong(){
   if(!songForm.songName)return;postingSong.value=true;
-  try{DB.insert('song_recommends',{nickname:nickname.value,song_name:songForm.songName,artist:songForm.artist,reason:songForm.reason,url:songForm.url,date:todayKey()});
+  try{DB.add('song_recommends',{nickname:nickname.value,songName:songForm.songName,artist:songForm.artist,reason:songForm.reason,url:songForm.url,date:todayKey()});
     showToast('🎵 推荐成功！');songForm.songName='';songForm.artist='';songForm.reason='';songForm.url='';await loadSong();
   }catch(e){showToast('推荐失败');}finally{postingSong.value=false;}
 }
@@ -462,12 +463,12 @@ const photoList=ref([]);const showPhotoForm=ref(false);const postingPhoto=ref(fa
 const photoForm=reactive({imageUrl:'',caption:''});
 async function loadPhoto(){
   try{const r=DB.all('daily_photos').slice(0,20);
-    photoList.value=r.map(o=>({id:o.id,nickname:o.nickname,imageUrl:o.image_url,caption:o.caption,date:o.date||todayKey()}));
-  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
+    photoList.value=r.map(o=>({id:o.id,nickname:o.nickname,imageUrl:o.imageUrl,caption:o.caption,date:o.date||todayKey()}));
+  }catch(e){console.error(e);}
 }
 async function postPhoto(){
   if(!photoForm.imageUrl)return;postingPhoto.value=true;
-  try{DB.insert('daily_photos',{nickname:nickname.value,image_url:photoForm.imageUrl,caption:photoForm.caption,date:todayKey(),likes:0});
+  try{DB.add('daily_photos',{nickname:nickname.value,imageUrl:photoForm.imageUrl,caption:photoForm.caption,date:todayKey(),likes:0});
     showToast('📸 发布成功！');photoForm.imageUrl='';photoForm.caption='';showPhotoForm.value=false;await loadPhoto();
   }catch(e){showToast('发布失败');}finally{postingPhoto.value=false;}
 }
@@ -479,7 +480,7 @@ const votedMap=JSON.parse(localStorage.getItem('il_votes')||'{}');
 async function loadPoll(){
   try{const r=DB.all('polls').slice(0,10);
     pollList.value=r.map(o=>({id:o.id,question:o.question,options:o.options||[],votes:o.votes||{},creator:o.creator,date:o.date||todayKey()}));
-  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
+  }catch(e){console.error(e);}
 }
 function pollCnt(p,i){const o=p.options[i];return(p.votes&&p.votes[o])?p.votes[o].length:0;}
 function pollTotal(p){let t=0;if(p.votes)Object.values(p.votes).forEach(v=>t+=v.length);return t;}
@@ -487,11 +488,11 @@ function pollPct(p,i){const total=pollTotal(p);return total?Math.round(pollCnt(p
 async function votePoll(p,i){
   if(votedMap[p.id])return;const opt=p.options[i];if(!p.votes)p.votes={};if(!p.votes[opt])p.votes[opt]=[];
   p.votes[opt].push(nickname.value);votedMap[p.id]=opt;localStorage.setItem('il_votes',JSON.stringify(votedMap));
-  try{DB.update('polls',p.id,{votes:p.votes});}catch(e){}
+  try{DB.set('polls',p.id,{votes:p.votes});}catch(e){}
 }
 async function createPoll(){
   if(!pollForm.question||pollForm.options.filter(o=>o).length<2){showToast('至少填问题和2个选项');return;}postingPoll.value=true;
-  try{DB.insert('polls',{question:pollForm.question,options:pollForm.options.filter(x=>x),votes:{},creator:nickname.value,date:todayKey()});
+  try{DB.add('polls',{question:pollForm.question,options:pollForm.options.filter(x=>x),votes:{},creator:nickname.value,date:todayKey()});
     showToast('投票已创建！');pollForm.question='';pollForm.options=['',''];showPollForm.value=false;await loadPoll();
   }catch(e){showToast('创建失败');}finally{postingPoll.value=false;}
 }
@@ -510,15 +511,15 @@ const truths=['你手机里最舍不得删的一张照片是什么？','你偷�
 function genTruth(){truthQ.value=truths[Math.floor(Math.random()*truths.length)];}
 
 async function setMood(m){myMood.value=m;try{
-  DB.remove('mood_entries',{nickname:nickname.value,date:todayKey()});
-  DB.insert('mood_entries',{nickname:nickname.value,mood:m,date:todayKey()});
-  await loadMood();showToast('心情已记录 '+m);}catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
+  DB.del('mood_entries',{nickname:nickname.value,date:todayKey()});
+  DB.add('mood_entries',{nickname:nickname.value,mood:m,date:todayKey()});
+  await loadMood();showToast('心情已记录 '+m);}catch(e){console.error(e);}
 }
 async function loadMood(){try{
-  const r=DB.query('mood_entries',{date:todayKey()});
+  const r=DB.qry('mood_entries',{date:todayKey()});
   moodBoard.value=r.map(o=>({nick:o.nickname,mood:o.mood}));
   const mine=r.find(o=>o.nickname===nickname.value);if(mine)myMood.value=mine.mood;
-}catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}}
+}catch(e){console.error(e);}}
 
 function submitChain(){const w=chainInput.value.trim();if(!w)return;
   if(w[0]!==chainWord.value.slice(-1)){showToast('要以「'+chainWord.value.slice(-1)+'」开头哦');return;}
