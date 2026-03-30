@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>岛屿来信</title>
 <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--navy:#1a2744;--gold:#c9a84c;--ink:#2c2416;--paper:#f5f0e8;--cream:#faf6ee;--card:rgba(250,246,238,.72);--card-b:rgba(201,168,76,.2);--sh:rgba(15,26,46,.08)}
@@ -350,17 +350,18 @@ html{font-size:16px}body{font-family:sans-serif;color:var(--ink);background:var(
 try{
 const{createApp,ref,reactive,computed,onMounted}=Vue;
 
-const SB_URL='https://ktaollniglejspwloar.supabase.co';const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0YW9sbG5pZ2xlaWpzcHdsb2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NjUwMjksImV4cCI6MjA5MDQ0MTAyOX0.RXlDIBKyuS1CjXQf9MP7aLo8Yc2yHzckrgM6gw_GQS0';
-let SB=null,SBReady=false;
-try{
-  if(window.supabase&&SB_KEY){
-    SB=supabase.createClient(SB_URL,SB_KEY);SBReady=true;
+// localStorage database helper
+const DB={
+  _key:"il_db",
+  _get(){try{return JSON.parse(localStorage.getItem(this._key)||"{}")}catch(e){return{}}},
+  _set(d){localStorage.setItem(this._key,JSON.stringify(d))},
+  all(table){const d=this._get();return(d[table]||[]).slice().sort((a,b)=>(b._ts||0)-(a._ts||0))},
+  insert(table,row){const d=this._get();if(!d[table])d[table]=[];row.id=row.id||crypto.randomUUID();row._ts=Date.now();row.created_at=new Date(row._ts).toISOString();d[table].push(row);this._set(d);return row},
+  update(table,id,patch){const d=this._get();if(!d[table])return;(d[table]||[]).forEach(r=>{if(r.id===id)Object.assign(r,patch)});this._set(d)},
+  remove(table,filter){const d=this._get();if(!d[table])return;d[table]=(d[table]||[]).filter(r=>!Object.entries(filter).every(([k,v])=>r[k]===v));this._set(d)},
+  query(table,filter){return this.all(table).filter(r=>Object.entries(filter).every(([k,v])=>r[k]===v))}
+};
 
-  }
-}catch(e){console.warn('Supabase init skipped:',e);}
-
-createApp({
-setup(){
 const nickname=ref(localStorage.getItem('il_nick')||'');
 const nickInput=ref('');
 const tab=ref('feed');
@@ -385,18 +386,18 @@ const feedList=ref([]);const loadingFeed=ref(false);const posting=ref(false);con
 const feedForm=reactive({content:'',mediaUrl:''});
 
 async function loadFeed(){
-  if(!SBReady)return;loadingFeed.value=true;
-  try{const{data:r,error}=await SB.from('moments').select('*').order('created_at',{ascending:false}).limit(20);
-    if(error)throw error;feedList.value=(r||[]).map(o=>({id:o.id,nickname:o.nickname,content:o.content,mediaUrl:o.media_url,ts:new Date(o.created_at),likes:o.likes||0}));
+  loadingFeed.value=true;
+  try{const r=DB.all('moments').slice(0,20);
+    feedList.value=r.map(o=>({id:o.id,nickname:o.nickname,content:o.content,mediaUrl:o.media_url,ts:new Date(o.created_at),likes:o.likes||0}));
   }catch(e){console.error(e);showToast("加载失败: "+(e.message||e));}finally{loadingFeed.value=false;}
 }
 async function postFeed(){
-  if(!SBReady){showToast('Supabase未配置');return;}if(!feedForm.content)return;
-  posting.value=true;try{await SB.from('moments').insert({nickname:nickname.value,content:feedForm.content,media_url:feedForm.mediaUrl,likes:0});
+  if(!feedForm.content)return;
+  posting.value=true;try{DB.insert('moments',{nickname:nickname.value,content:feedForm.content,media_url:feedForm.mediaUrl,likes:0});
   showToast('✉ 来信已到达');feedForm.content='';feedForm.mediaUrl='';await loadFeed();}catch(e){showToast('发布失败');console.error(e);}finally{posting.value=false;}
 }
-function likeFeed(m){if(liked[m.id])return;liked[m.id]=true;m.likes=(m.likes||0)+1;if(!SBReady)return;
-  try{SB.from('moments').update({likes:m.likes}).eq('id',m.id);}catch(e){}}
+function likeFeed(m){if(liked[m.id])return;liked[m.id]=true;m.likes=(m.likes||0)+1;
+  try{DB.update('moments',m.id,{likes:m.likes});}catch(e){}}
 
 // Check-in
 const ciTypes=[{id:'early',icon:'🌅',label:'早起'},{id:'gym',icon:'💪',label:'健身'},{id:'read',icon:'📚',label:'读书'},{id:'other',icon:'✨',label:'自定义'}];
@@ -404,19 +405,19 @@ const todayCI=reactive({});const todayCheckins=ref([]);const ciRank=ref([]);cons
 function ciLabel(id){return(ciTypes.find(t=>t.id===id)||{}).label||id;}
 
 async function doCheckin(type){
-  if(todayCI[type]||!SBReady)return;
-  try{await SB.from('checkins').insert({nickname:nickname.value,type:type,date:todayKey()});todayCI[type]=true;showToast('打卡成功！🔥');await loadCheckin();}catch(e){showToast('打卡失败');}
+  if(todayCI[type])return;
+  try{DB.insert('checkins',{nickname:nickname.value,type:type,date:todayKey()});todayCI[type]=true;showToast('打卡成功！🔥');await loadCheckin();}catch(e){showToast('打卡失败');}
 }
 async function loadCheckin(){
-  if(!SBReady)return;try{
-    const{data:r}=await SB.from('checkins').select('*').eq('date',todayKey()).order('created_at',{ascending:false});
-    todayCheckins.value=(r||[]).map(o=>({id:o.id,nickname:o.nickname,type:o.type,ts:new Date(o.created_at)}));
-    (r||[]).filter(o=>o.nickname===nickname.value).forEach(o=>todayCI[o.type]=true);
-    const{data:r2}=await SB.from('checkins').select('date').eq('nickname',nickname.value).order('date',{ascending:false}).limit(30);
-    const dates=[...new Set((r2||[]).map(o=>o.date))].sort().reverse();
+  try{
+    const r=DB.query('checkins',{date:todayKey()});
+    todayCheckins.value=r.map(o=>({id:o.id,nickname:o.nickname,type:o.type,ts:new Date(o.created_at)}));
+    r.filter(o=>o.nickname===nickname.value).forEach(o=>todayCI[o.type]=true);
+    const r2=DB.query('checkins',{nickname:nickname.value}).slice(0,30);
+    const dates=[...new Set(r2.map(o=>o.date))].sort().reverse();
     let s=0;for(let i=0;i<dates.length;i++){const exp=new Date(todayKey());exp.setDate(exp.getDate()-i);const ek=exp.toISOString().slice(0,10);if(dates.includes(ek))s++;else break;}myStreak.value=s;
-    const{data:r3}=await SB.from('checkins').select('nickname,date').limit(1000);const cnt={};
-    (r3||[]).forEach(o=>{if(!cnt[o.nickname])cnt[o.nickname]=new Set();cnt[o.nickname].add(o.date);});
+    const r3=DB.all('checkins');const cnt={};
+    r3.forEach(o=>{if(!cnt[o.nickname])cnt[o.nickname]=new Set();cnt[o.nickname].add(o.date);});
     ciRank.value=Object.entries(cnt).map(([nick,set])=>({nick,days:set.size})).sort((a,b)=>b.days-a.days).slice(0,10);
   }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
@@ -444,14 +445,14 @@ async function loadNews(){
 const todaySong=ref(null);const songHistory=ref([]);const postingSong=ref(false);
 const songForm=reactive({songName:'',artist:'',reason:'',url:''});
 async function loadSong(){
-  if(!SBReady)return;try{const{data:r}=await SB.from('song_recommends').select('*').order('created_at',{ascending:false}).limit(20);
-    const all=(r||[]).map(o=>({id:o.id,nickname:o.nickname,songName:o.song_name,artist:o.artist,reason:o.reason,url:o.url,date:o.date||todayKey()}));
+  try{const r=DB.all('song_recommends').slice(0,20);
+    const all=r.map(o=>({id:o.id,nickname:o.nickname,songName:o.song_name,artist:o.artist,reason:o.reason,url:o.url,date:o.date||todayKey()}));
     todaySong.value=all.find(s=>s.date===todayKey())||null;songHistory.value=all.filter(s=>s.date!==todayKey()).slice(0,10);
   }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 async function postSong(){
-  if(!songForm.songName||!SBReady)return;postingSong.value=true;
-  try{await SB.from('song_recommends').insert({nickname:nickname.value,song_name:songForm.songName,artist:songForm.artist,reason:songForm.reason,url:songForm.url,date:todayKey()});
+  if(!songForm.songName)return;postingSong.value=true;
+  try{DB.insert('song_recommends',{nickname:nickname.value,song_name:songForm.songName,artist:songForm.artist,reason:songForm.reason,url:songForm.url,date:todayKey()});
     showToast('🎵 推荐成功！');songForm.songName='';songForm.artist='';songForm.reason='';songForm.url='';await loadSong();
   }catch(e){showToast('推荐失败');}finally{postingSong.value=false;}
 }
@@ -460,13 +461,13 @@ async function postSong(){
 const photoList=ref([]);const showPhotoForm=ref(false);const postingPhoto=ref(false);
 const photoForm=reactive({imageUrl:'',caption:''});
 async function loadPhoto(){
-  if(!SBReady)return;try{const{data:r}=await SB.from('daily_photos').select('*').order('created_at',{ascending:false}).limit(20);
-    photoList.value=(r||[]).map(o=>({id:o.id,nickname:o.nickname,imageUrl:o.image_url,caption:o.caption,date:o.date||todayKey()}));
+  try{const r=DB.all('daily_photos').slice(0,20);
+    photoList.value=r.map(o=>({id:o.id,nickname:o.nickname,imageUrl:o.image_url,caption:o.caption,date:o.date||todayKey()}));
   }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 async function postPhoto(){
-  if(!photoForm.imageUrl||!SBReady)return;postingPhoto.value=true;
-  try{await SB.from('daily_photos').insert({nickname:nickname.value,image_url:photoForm.imageUrl,caption:photoForm.caption,date:todayKey(),likes:0});
+  if(!photoForm.imageUrl)return;postingPhoto.value=true;
+  try{DB.insert('daily_photos',{nickname:nickname.value,image_url:photoForm.imageUrl,caption:photoForm.caption,date:todayKey(),likes:0});
     showToast('📸 发布成功！');photoForm.imageUrl='';photoForm.caption='';showPhotoForm.value=false;await loadPhoto();
   }catch(e){showToast('发布失败');}finally{postingPhoto.value=false;}
 }
@@ -476,8 +477,8 @@ const pollList=ref([]);const showPollForm=ref(false);const postingPoll=ref(false
 const pollForm=reactive({question:'',options:['','']});
 const votedMap=JSON.parse(localStorage.getItem('il_votes')||'{}');
 async function loadPoll(){
-  if(!SBReady)return;try{const{data:r}=await SB.from('polls').select('*').order('created_at',{ascending:false}).limit(10);
-    pollList.value=(r||[]).map(o=>({id:o.id,question:o.question,options:o.options||[],votes:o.votes||{},creator:o.creator,date:o.date||todayKey()}));
+  try{const r=DB.all('polls').slice(0,10);
+    pollList.value=r.map(o=>({id:o.id,question:o.question,options:o.options||[],votes:o.votes||{},creator:o.creator,date:o.date||todayKey()}));
   }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 function pollCnt(p,i){const o=p.options[i];return(p.votes&&p.votes[o])?p.votes[o].length:0;}
@@ -486,11 +487,11 @@ function pollPct(p,i){const total=pollTotal(p);return total?Math.round(pollCnt(p
 async function votePoll(p,i){
   if(votedMap[p.id])return;const opt=p.options[i];if(!p.votes)p.votes={};if(!p.votes[opt])p.votes[opt]=[];
   p.votes[opt].push(nickname.value);votedMap[p.id]=opt;localStorage.setItem('il_votes',JSON.stringify(votedMap));
-  if(!SBReady)return;try{await SB.from('polls').update({votes:p.votes}).eq('id',p.id);}catch(e){}
+  try{DB.update('polls',p.id,{votes:p.votes});}catch(e){}
 }
 async function createPoll(){
-  if(!pollForm.question||pollForm.options.filter(o=>o).length<2){showToast('至少填问题和2个选项');return;}if(!SBReady)return;postingPoll.value=true;
-  try{await SB.from('polls').insert({question:pollForm.question,options:pollForm.options.filter(x=>x),votes:{},creator:nickname.value,date:todayKey()});
+  if(!pollForm.question||pollForm.options.filter(o=>o).length<2){showToast('至少填问题和2个选项');return;}postingPoll.value=true;
+  try{DB.insert('polls',{question:pollForm.question,options:pollForm.options.filter(x=>x),votes:{},creator:nickname.value,date:todayKey()});
     showToast('投票已创建！');pollForm.question='';pollForm.options=['',''];showPollForm.value=false;await loadPoll();
   }catch(e){showToast('创建失败');}finally{postingPoll.value=false;}
 }
@@ -508,15 +509,15 @@ dailyQ.value=dailyQs[new Date().getDate()%dailyQs.length];
 const truths=['你手机里最舍不得删的一张照片是什么？','你偷偷做过什么不好意思让朋友知道的事？','你最想对在座某人说的一句话？','你最近一次哭是因为什么？','你觉得自己最大的缺点是什么？','你有没有暗恋过在座的某个人？','你最尴尬的一次经历是什么？','你做过最疯狂的事是什么？','你最害怕什么？','你觉得在座谁最靠谱？'];
 function genTruth(){truthQ.value=truths[Math.floor(Math.random()*truths.length)];}
 
-async function setMood(m){myMood.value=m;if(!SBReady)return;try{
-  await SB.from('mood_entries').delete().eq('nickname',nickname.value).eq('date',todayKey());
-  await SB.from('mood_entries').insert({nickname:nickname.value,mood:m,date:todayKey()});
+async function setMood(m){myMood.value=m;try{
+  DB.remove('mood_entries',{nickname:nickname.value,date:todayKey()});
+  DB.insert('mood_entries',{nickname:nickname.value,mood:m,date:todayKey()});
   await loadMood();showToast('心情已记录 '+m);}catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
-async function loadMood(){if(!SBReady)return;try{
-  const{data:r}=await SB.from('mood_entries').select('*').eq('date',todayKey()).order('created_at',{ascending:false});
-  moodBoard.value=(r||[]).map(o=>({nick:o.nickname,mood:o.mood}));
-  const mine=(r||[]).find(o=>o.nickname===nickname.value);if(mine)myMood.value=mine.mood;
+async function loadMood(){try{
+  const r=DB.query('mood_entries',{date:todayKey()});
+  moodBoard.value=r.map(o=>({nick:o.nickname,mood:o.mood}));
+  const mine=r.find(o=>o.nickname===nickname.value);if(mine)myMood.value=mine.mood;
 }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}}
 
 function submitChain(){const w=chainInput.value.trim();if(!w)return;
