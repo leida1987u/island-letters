@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>岛屿来信</title>
+
+<!-- Vue 3 -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<!-- LeanCloud SDK -->
+<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.2/dist/av-min.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a2744;--navy-deep:#0f1a2e;--navy-light:#2a3d5e;
+  --gold:#c9a84c;--gold-muted:#b8973f;--gold-glow:rgba(201,168,76,0.15);
+  --ink:#2c2416;--ink-light:#4a3f30;--ink-faint:#6b5d4e;
+  --paper:#f5f0e8;--paper-dark:#e8e0d0;--cream:#faf6ee;
+  --card-bg:rgba(250,246,238,0.72);--card-border:rgba(201,168,76,0.2);
+  --shadow:rgba(15,26,46,0.08);
+}
+html{font-size:16px;-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;
+  color:var(--ink);background:var(--paper);line-height:1.7;
+  min-height:100vh;overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse at 20% 50%,rgba(201,168,76,0.04) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 20%,rgba(26,39,68,0.03) 0%,transparent 50%),
+    url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--navy-light);border-radius:2px}
+#app{max-width:480px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom,20px)}
+
+.hero{position:relative;width:100%;height:56vw;max-height:320px;min-height:200px;overflow:hidden;border-radius:0 0 24px 24px}
+.hero-img{width:100%;height:100%;object-fit:cover;display:block;background:linear-gradient(160deg,var(--navy-deep) 0%,var(--navy) 40%,var(--navy-light) 100%)}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,26,46,0.25) 0%,rgba(15,26,46,0.55) 60%,rgba(15,26,46,0.85) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.hero-title{font-family:'STXingkai','STKaiti','Kaiti SC','KaiTi','Kaiti',serif;font-size:clamp(1.8rem,7vw,2.6rem);color:#f5f0e8;letter-spacing:0.15em;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,0.3);font-weight:400}
+.hero-sub{font-size:clamp(0.75rem,3vw,0.9rem);color:rgba(245,240,232,0.7);letter-spacing:0.08em;font-style:italic}
+.hero-sub .gold{color:var(--gold)}
+
+.section-title{font-family:'STXingkai','STKaiti','Kaiti SC','KaiTi',serif;font-size:1.1rem;color:var(--navy);padding:20px 16px 8px;display:flex;align-items:center;gap:8px;letter-spacing:0.06em}
+.section-title::before{content:'';display:inline-block;width:3px;height:1em;background:linear-gradient(to bottom,var(--gold),transparent);border-radius:2px}
+
+.compose{margin:12px 16px;background:var(--card-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--card-border);border-radius:16px;padding:16px;box-shadow:0 4px 20px var(--shadow)}
+.compose-field{margin-bottom:10px}
+.compose-field label{display:block;font-size:0.78rem;color:var(--ink-faint);margin-bottom:4px;letter-spacing:0.04em}
+.compose-field input,.compose-field textarea,.compose-field select{width:100%;padding:10px 12px;border:1px solid rgba(201,168,76,0.2);border-radius:10px;background:rgba(250,246,238,0.6);font-family:inherit;font-size:0.9rem;color:var(--ink);outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.compose-field input:focus,.compose-field textarea:focus{border-color:var(--gold-muted)}
+.compose-field textarea{resize:vertical;min-height:80px;line-height:1.6}
+.compose-row{display:flex;gap:8px;align-items:flex-end}
+.compose-row .compose-field{flex:1}
+.compose-row .compose-field:last-child{flex:0 0 90px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border:none;border-radius:10px;font-family:inherit;font-size:0.88rem;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;-webkit-tap-highlight-color:transparent}
+.btn-primary{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:var(--cream);width:100%;margin-top:4px}
+.btn-primary:active{transform:scale(0.97);opacity:0.9}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+
+.timeline{padding:0 16px 24px}
+.card{background:var(--card-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--card-border);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 16px var(--shadow);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold-muted),transparent);opacity:0.4}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--navy-light),var(--navy));display:flex;align-items:center;justify-content:center;color:var(--cream);font-size:0.8rem;font-weight:600;flex-shrink:0}
+.card-meta{flex:1;min-width:0}
+.card-nick{font-size:0.92rem;font-weight:600;color:var(--navy);line-height:1.3}
+.card-time{font-size:0.72rem;color:var(--ink-faint)}
+.card-body{font-size:0.92rem;line-height:1.75;color:var(--ink-light);word-break:break-word;white-space:pre-wrap}
+.card-image{margin-top:10px;border-radius:10px;overflow:hidden;position:relative;background:var(--paper-dark)}
+.card-image img{width:100%;display:block;border-radius:10px}
+.card-image .img-fallback{padding:40px 16px;text-align:center;color:var(--ink-faint);font-size:0.8rem}
+.card-footer{display:flex;align-items:center;justify-content:flex-end;margin-top:12px;padding-top:10px;border-top:1px solid rgba(201,168,76,0.12)}
+.pat-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid rgba(201,168,76,0.25);border-radius:20px;background:transparent;font-family:inherit;font-size:0.82rem;color:var(--ink-faint);cursor:pointer;transition:all 0.25s;-webkit-tap-highlight-color:transparent}
+.pat-btn:active{background:var(--gold-glow);border-color:var(--gold-muted);color:var(--gold-muted);transform:scale(0.95)}
+.pat-btn.patted{background:var(--gold-glow);border-color:var(--gold-muted);color:var(--gold-muted)}
+.pat-count{font-variant-numeric:tabular-nums;min-width:1em;text-align:center}
+
+.state-msg{text-align:center;padding:40px 24px;color:var(--ink-faint);font-size:0.88rem;line-height:1.8}
+.state-msg .icon{font-size:2rem;margin-bottom:12px;display:block}
+.loading-dots::after{content:'';animation:dots 1.4s steps(4,end) infinite}
+@keyframes dots{0%{content:''}25%{content:'。'}50%{content:'。。'}75%{content:'。。。'}}
+
+.refresh-bar{display:flex;justify-content:center;padding:8px 16px 4px}
+.refresh-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:1px solid rgba(201,168,76,0.2);border-radius:20px;background:rgba(250,246,238,0.5);font-family:inherit;font-size:0.82rem;color:var(--ink-faint);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.2s}
+.refresh-btn:active{background:var(--gold-glow);border-color:var(--gold-muted)}
+.refresh-btn .spin{display:inline-block;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--cream);padding:10px 24px;border-radius:12px;font-size:0.85rem;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:toastIn 0.3s ease;max-width:80vw;text-align:center}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+.site-footer{text-align:center;padding:16px 24px 32px;color:var(--ink-faint);font-size:0.72rem;letter-spacing:0.06em;opacity:0.6}
+.fade-enter-active,.fade-leave-active{transition:opacity 0.3s ease}
+.fade-enter-from,.fade-leave-to{opacity:0}
+</style>
+</head>
+<body>
+<div id="app">
+  <transition name="fade">
+    <div class="toast" v-if="toast.msg" v-text="toast.msg"></div>
+  </transition>
+
+  <header class="hero">
+    <img class="hero-img" :src="heroImage" alt="岛屿来信" loading="eager" @error="heroImgFailed=true" v-show="!heroImgFailed">
+    <div class="hero-overlay">
+      <h1 class="hero-title">岛屿来信</h1>
+      <p class="hero-sub">写一封近况，投递到小岛<span class="gold"> · </span>深蓝与旧信</p>
+    </div>
+  </header>
+
+  <div class="section-title">写一封近况</div>
+  <div class="compose">
+    <div class="compose-field">
+      <label>你的昵称</label>
+      <input v-model.trim="form.nickname" placeholder="岛上的人" maxlength="20">
+    </div>
+    <div class="compose-field">
+      <label>想说的话</label>
+      <textarea v-model.trim="form.content" placeholder="最近怎么样？" maxlength="1000" rows="3"></textarea>
+    </div>
+    <div class="compose-row">
+      <div class="compose-field">
+        <label>图片链接（可选）</label>
+        <input v-model.trim="form.mediaUrl" placeholder="https://...">
+      </div>
+      <div class="compose-field">
+        <label>类型</label>
+        <select v-model="form.mediaType">
+          <option value="text">纯文字</option>
+          <option value="image">含图片</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" @click="publish" :disabled="publishing || !form.content">
+      {{ publishing ? '正在投递…' : '✉ 投递到小岛' }}
+    </button>
+  </div>
+
+  <div class="refresh-bar">
+    <button class="refresh-btn" @click="fetchMessages" :disabled="loading">
+      <span v-if="loading" class="spin">⟳</span><span v-else>⟳</span>
+      {{ loading ? '打捞中…' : '刷新来信' }}
+    </button>
+  </div>
+
+  <div class="section-title">最近的来信</div>
+  <div class="timeline">
+    <div class="state-msg" v-if="loading && messages.length===0">
+      <span class="icon">🌊</span>
+      <span class="loading-dots">正在从海面打捞漂流瓶</span>
+    </div>
+    <div class="state-msg" v-else-if="errorMsg">
+      <span class="icon">🌧</span>{{ errorMsg }}
+    </div>
+    <div class="state-msg" v-else-if="!loading && messages.length===0">
+      <span class="icon">🏝</span>这里还没有来信。<br>你可以写下第一句问候。
+    </div>
+    <div class="card" v-for="msg in messages" :key="msg.id">
+      <div class="card-header">
+        <div class="avatar">{{ (msg.nickname||'岛')[0] }}</div>
+        <div class="card-meta">
+          <div class="card-nick" v-text="msg.nickname || '匿名旅人'"></div>
+          <div class="card-time" v-text="formatTime(msg.timestamp)"></div>
+        </div>
+      </div>
+      <div class="card-body" v-text="msg.content"></div>
+      <div class="card-image" v-if="msg.mediaType==='image' && msg.mediaUrl">
+        <img :src="msg.mediaUrl" :alt="msg.content" loading="lazy" @error="imgErrors[msg.id]=true">
+        <div class="img-fallback" v-if="imgErrors[msg.id]">📷 图片加载失败</div>
+      </div>
+      <div class="card-footer">
+        <button class="pat-btn" :class="{ patted: pattedIds[msg.id] }" @click="pat(msg)">
+          👋 拍一拍
+          <span class="pat-count" v-if="msg.patCount>0" v-text="msg.patCount"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">岛屿来信 · 旧朋友的小岛</footer>
+</div>
+
+<script>
+/* =============================================
+   LeanCloud 配置区
+   ============================================= */
+const LEANCLOUD_CONFIG = {
+  APP_ID:    '你的_APP_ID',
+  APP_KEY:   '你的_APP_KEY',
+  SERVER_URL:'你的_SERVER_URL'
+};
+
+const HERO_IMAGE_URL = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=960&q=80';
+
+let AV = window.AV;
+let LC = null;
+let LeanCloudReady = false;
+if (AV && LEANCLOUD_CONFIG.APP_ID && !LEANCLOUD_CONFIG.APP_ID.startsWith('你的')) {
+  try {
+    AV.init({ appId: LEANCLOUD_CONFIG.APP_ID, appKey: LEANCLOUD_CONFIG.APP_KEY, serverURL: LEANCLOUD_CONFIG.SERVER_URL });
+    LC = AV.Object.extend('TimelineMessage');
+    LeanCloudReady = true;
+  } catch (e) { console.error('LeanCloud 初始化失败:', e); }
+}
+
+const { createApp, ref, reactive, onMounted } = Vue;
+createApp({
+  setup() {
+    const messages = ref([]);
+    const loading = ref(false);
+    const publishing = ref(false);
+    const errorMsg = ref('');
+    const heroImgFailed = ref(false);
+    const heroImage = HERO_IMAGE_URL;
+    const imgErrors = reactive({});
+    const pattedIds = reactive({});
+    const toast = reactive({ msg: '', timer: null });
+    const form = reactive({ nickname: '', content: '', mediaType: 'text', mediaUrl: '' });
+
+    function showToast(msg, duration = 2200) {
+      toast.msg = msg;
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => { toast.msg = ''; }, duration);
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      let d;
+      if (ts.iso) d = new Date(ts.iso);
+      else if (ts instanceof Date) d = ts;
+      else d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      const now = new Date(), diff = now - d;
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+      if (diff < 172800000) return '昨天';
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    async function fetchMessages() {
+      if (!LeanCloudReady) { errorMsg = 'LeanCloud 尚未配置。请在代码顶部填写 APP_ID、APP_KEY 和 SERVER_URL。'; return; }
+      loading.value = true; errorMsg.value = '';
+      try {
+        const query = new AV.Query('TimelineMessage');
+        query.descending('timestamp'); query.limit(10);
+        const results = await query.find();
+        messages.value = results.map(obj => ({
+          id: obj.id, nickname: obj.get('nickname') || '', content: obj.get('content') || '',
+          mediaType: obj.get('mediaType') || 'text', mediaUrl: obj.get('mediaUrl') || '',
+          timestamp: obj.get('timestamp') || obj.createdAt, patCount: obj.get('patCount') || 0
+        }));
+      } catch (err) { console.error('拉取失败:', err); errorMsg.value = '来信打捞失败了 🌧 请稍后重试'; }
+      finally { loading.value = false; }
+    }
+
+    async function publish() {
+      if (!LeanCloudReady) { showToast('LeanCloud 尚未配置'); return; }
+      if (!form.content) { showToast('写点什么再投递吧'); return; }
+      if (form.mediaType === 'image' && form.mediaUrl && !/^https?:\/\//.test(form.mediaUrl)) { showToast('图片链接格式不正确'); return; }
+      publishing.value = true;
+      try {
+        const msg = new LC();
+        msg.set('nickname', form.nickname || '匿名旅人');
+        msg.set('content', form.content);
+        msg.set('mediaType', form.mediaType);
+        msg.set('mediaUrl', form.mediaUrl);
+        msg.set('timestamp', new Date().toISOString());
+        msg.set('patCount', 0);
+        await msg.save();
+        showToast('✉ 来信已抵达小岛');
+        form.content = ''; form.mediaUrl = ''; form.mediaType = 'text';
+        await fetchMessages();
+      } catch (err) { console.error('发布失败:', err); showToast('投递失败，请重试'); }
+      finally { publishing.value = false; }
+    }
+
+    async function pat(msg) {
+      if (pattedIds[msg.id]) return;
+      pattedIds[msg.id] = true;
+      msg.patCount = (msg.patCount || 0) + 1;
+      if (!LeanCloudReady) return;
+      try {
+        const obj = AV.Object.createWithoutData('TimelineMessage', msg.id);
+        obj.increment('patCount'); await obj.save();
+      } catch (err) {
+        console.error('拍一拍失败:', err);
+        msg.patCount = Math.max(0, msg.patCount - 1);
+        delete pattedIds[msg.id]; showToast('拍一拍失败了');
+      }
+    }
+
+    onMounted(() => { fetchMessages(); });
+    return { messages, loading, publishing, errorMsg, heroImgFailed, heroImage, imgErrors, pattedIds, toast, form, formatTime, fetchMessages, publish, pat };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
