@@ -388,7 +388,7 @@ async function loadFeed(){
   if(!SBReady)return;loadingFeed.value=true;
   try{const{data:r,error}=await SB.from('moments').select('*').order('created_at',{ascending:false}).limit(20);
     if(error)throw error;feedList.value=(r||[]).map(o=>({id:o.id,nickname:o.nickname,content:o.content,mediaUrl:o.media_url,ts:new Date(o.created_at),likes:o.likes||0}));
-  }catch(e){console.error(e);}finally{loadingFeed.value=false;}
+  }catch(e){console.error(e);showToast("加载失败: "+(e.message||e));}finally{loadingFeed.value=false;}
 }
 async function postFeed(){
   if(!SBReady){showToast('Supabase未配置');return;}if(!feedForm.content)return;
@@ -418,7 +418,7 @@ async function loadCheckin(){
     const{data:r3}=await SB.from('checkins').select('nickname,date').limit(1000);const cnt={};
     (r3||[]).forEach(o=>{if(!cnt[o.nickname])cnt[o.nickname]=new Set();cnt[o.nickname].add(o.date);});
     ciRank.value=Object.entries(cnt).map(([nick,set])=>({nick,days:set.size})).sort((a,b)=>b.days-a.days).slice(0,10);
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 
 // Analysis
@@ -447,7 +447,7 @@ async function loadSong(){
   if(!SBReady)return;try{const{data:r}=await SB.from('song_recommends').select('*').order('created_at',{ascending:false}).limit(20);
     const all=(r||[]).map(o=>({id:o.id,nickname:o.nickname,songName:o.song_name,artist:o.artist,reason:o.reason,url:o.url,date:o.date||todayKey()}));
     todaySong.value=all.find(s=>s.date===todayKey())||null;songHistory.value=all.filter(s=>s.date!==todayKey()).slice(0,10);
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 async function postSong(){
   if(!songForm.songName||!SBReady)return;postingSong.value=true;
@@ -462,7 +462,7 @@ const photoForm=reactive({imageUrl:'',caption:''});
 async function loadPhoto(){
   if(!SBReady)return;try{const{data:r}=await SB.from('daily_photos').select('*').order('created_at',{ascending:false}).limit(20);
     photoList.value=(r||[]).map(o=>({id:o.id,nickname:o.nickname,imageUrl:o.image_url,caption:o.caption,date:o.date||todayKey()}));
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 async function postPhoto(){
   if(!photoForm.imageUrl||!SBReady)return;postingPhoto.value=true;
@@ -478,7 +478,7 @@ const votedMap=JSON.parse(localStorage.getItem('il_votes')||'{}');
 async function loadPoll(){
   if(!SBReady)return;try{const{data:r}=await SB.from('polls').select('*').order('created_at',{ascending:false}).limit(10);
     pollList.value=(r||[]).map(o=>({id:o.id,question:o.question,options:o.options||[],votes:o.votes||{},creator:o.creator,date:o.date||todayKey()}));
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 function pollCnt(p,i){const o=p.options[i];return(p.votes&&p.votes[o])?p.votes[o].length:0;}
 function pollTotal(p){let t=0;if(p.votes)Object.values(p.votes).forEach(v=>t+=v.length);return t;}
@@ -511,13 +511,13 @@ function genTruth(){truthQ.value=truths[Math.floor(Math.random()*truths.length)]
 async function setMood(m){myMood.value=m;if(!SBReady)return;try{
   await SB.from('mood_entries').delete().eq('nickname',nickname.value).eq('date',todayKey());
   await SB.from('mood_entries').insert({nickname:nickname.value,mood:m,date:todayKey()});
-  await loadMood();showToast('心情已记录 '+m);}catch(e){console.error(e);}
+  await loadMood();showToast('心情已记录 '+m);}catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}
 }
 async function loadMood(){if(!SBReady)return;try{
   const{data:r}=await SB.from('mood_entries').select('*').eq('date',todayKey()).order('created_at',{ascending:false});
   moodBoard.value=(r||[]).map(o=>({nick:o.nickname,mood:o.mood}));
   const mine=(r||[]).find(o=>o.nickname===nickname.value);if(mine)myMood.value=mine.mood;
-}catch(e){console.error(e);}}
+}catch(e){console.error(e);showToast("加载错误: "+(e.message||e));}}
 
 function submitChain(){const w=chainInput.value.trim();if(!w)return;
   if(w[0]!==chainWord.value.slice(-1)){showToast('要以「'+chainWord.value.slice(-1)+'」开头哦');return;}
