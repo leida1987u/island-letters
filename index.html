@@ -4,233 +4,138 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>岛屿来信</title>
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.2/dist/av-min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/leancloud-storage/4.15.2/av-min.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--navy:#1a2744;--navy-d:#0f1a2e;--navy-l:#2a3d5e;--gold:#c9a84c;--gold-m:#b8973f;--gold-g:rgba(201,168,76,.15);--ink:#2c2416;--ink-l:#4a3f30;--ink-f:#6b5d4e;--paper:#f5f0e8;--paper-d:#e8e0d0;--cream:#faf6ee;--card:rgba(250,246,238,.72);--card-b:rgba(201,168,76,.2);--sh:rgba(15,26,46,.08)}
-html{font-size:16px;-webkit-text-size-adjust:100%}
-body{font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;color:var(--ink);background:var(--paper);line-height:1.7;min-height:100vh;overflow-x:hidden;background-image:radial-gradient(ellipse at 20% 50%,rgba(201,168,76,.04) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(26,39,68,.03) 0%,transparent 50%),url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E")}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--navy-l);border-radius:2px}
+:root{--navy:#1a2744;--gold:#c9a84c;--ink:#2c2416;--paper:#f5f0e8;--cream:#faf6ee;--card:rgba(250,246,238,.72);--card-b:rgba(201,168,76,.2);--sh:rgba(15,26,46,.08)}
+html{font-size:16px}body{font-family:sans-serif;color:var(--ink);background:var(--paper);line-height:1.7;min-height:100vh;overflow-x:hidden}
 #app{max-width:480px;margin:0 auto;padding-bottom:70px}
-
-.hero{position:relative;width:100%;height:42vw;max-height:240px;min-height:160px;overflow:hidden;border-radius:0 0 20px 20px}
-.hero-img{width:100%;height:100%;object-fit:cover;background:linear-gradient(160deg,var(--navy-d),var(--navy),var(--navy-l))}
-.hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,26,46,.2),rgba(15,26,46,.6),rgba(15,26,46,.9));display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
-.hero-t{font-family:'STXingkai','STKaiti','Kaiti SC','KaiTi',serif;font-size:clamp(1.6rem,6vw,2.2rem);color:var(--cream);letter-spacing:.15em;text-shadow:0 2px 12px rgba(0,0,0,.3);font-weight:400}
-.hero-s{font-size:clamp(.7rem,2.8vw,.85rem);color:rgba(245,240,232,.65);letter-spacing:.08em;font-style:italic;margin-top:4px}
-
-/* Bottom Nav */
-.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(250,246,238,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--card-b);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)}
-.bnav .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 2px 4px;font-size:.6rem;color:var(--ink-f);cursor:pointer;transition:.2s;-webkit-tap-highlight-color:transparent;border:none;background:none;font-family:inherit;min-height:48px}
-.bnav .tab .ico{font-size:1.15rem;margin-bottom:1px}
-.bnav .tab.on{color:var(--gold-m)}
-.bnav .tab.on .ico{transform:scale(1.15)}
-
-/* Section title */
-.stitle{font-family:'STXingkai','STKaiti','Kaiti SC','KaiTi',serif;font-size:1rem;color:var(--navy);padding:14px 14px 6px;display:flex;align-items:center;gap:6px;letter-spacing:.06em}
-.stitle::before{content:'';width:3px;height:1em;background:linear-gradient(to bottom,var(--gold),transparent);border-radius:2px}
-
-/* Glass card */
-.gc{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--card-b);border-radius:14px;padding:14px;margin:8px 12px;box-shadow:0 2px 14px var(--sh);position:relative;overflow:hidden}
-.gc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold-m),transparent);opacity:.35}
-
-/* Compose */
-.compose{margin:8px 12px}
-.cf{margin-bottom:8px}
-.cf label{display:block;font-size:.75rem;color:var(--ink-f);margin-bottom:3px}
-.cf input,.cf textarea,.cf select{width:100%;padding:9px 11px;border:1px solid rgba(201,168,76,.2);border-radius:10px;background:rgba(250,246,238,.6);font-family:inherit;font-size:.88rem;color:var(--ink);outline:none;transition:.2s;-webkit-appearance:none}
-.cf input:focus,.cf textarea:focus{border-color:var(--gold-m)}
-.cf textarea{resize:vertical;min-height:60px;line-height:1.6}
-.crow{display:flex;gap:8px}.crow .cf{flex:1}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 18px;border:none;border-radius:10px;font-family:inherit;font-size:.85rem;cursor:pointer;transition:.2s;letter-spacing:.04em;-webkit-tap-highlight-color:transparent}
-.btn-p{background:linear-gradient(135deg,var(--navy),var(--navy-l));color:var(--cream);width:100%}
-.btn-p:active{transform:scale(.97)}.btn-p:disabled{opacity:.5;cursor:not-allowed}
-.btn-s{background:var(--gold-g);border:1px solid var(--card-b);color:var(--ink-l);width:100%}
-.btn-s:active{background:var(--gold-g);border-color:var(--gold-m)}
-
-/* Cards */
-.card{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--card-b);border-radius:14px;padding:14px;margin:8px 12px;box-shadow:0 2px 14px var(--sh);position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold-m),transparent);opacity:.35}
+.hero{position:relative;width:100%;height:40vw;max-height:200px;min-height:140px;overflow:hidden;border-radius:0 0 20px 20px;background:linear-gradient(160deg,#0f1a2e,#1a2744,#2a3d5e)}
+.hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,26,46,.3),rgba(15,26,46,.7));display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.hero-t{font-size:clamp(1.5rem,6vw,2rem);color:var(--cream);letter-spacing:.12em}
+.hero-s{font-size:.8rem;color:rgba(245,240,232,.6);margin-top:4px;font-style:italic}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(250,246,238,.92);backdrop-filter:blur(16px);border-top:1px solid var(--card-b);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)}
+.bnav .tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 2px;font-size:.6rem;color:#6b5d4e;cursor:pointer;border:none;background:none;font-family:inherit;min-height:48px}
+.bnav .tab .ico{font-size:1.1rem;margin-bottom:1px}
+.bnav .tab.on{color:var(--gold)}
+.stitle{font-size:.95rem;color:var(--navy);padding:12px 14px 4px;font-weight:600}
+.gc{background:var(--card);border:1px solid var(--card-b);border-radius:14px;padding:14px;margin:8px 12px;box-shadow:0 2px 10px var(--sh)}
+.cf{margin-bottom:8px}.cf label{display:block;font-size:.72rem;color:#6b5d4e;margin-bottom:3px}
+.cf input,.cf textarea,.cf select{width:100%;padding:9px;border:1px solid rgba(201,168,76,.2);border-radius:10px;background:rgba(250,246,238,.6);font-family:inherit;font-size:.85rem;color:var(--ink);outline:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 18px;border:none;border-radius:10px;font-family:inherit;font-size:.85rem;cursor:pointer}
+.btn-p{background:linear-gradient(135deg,#1a2744,#2a3d5e);color:var(--cream);width:100%}
+.btn-s{background:rgba(201,168,76,.12);border:1px solid var(--card-b);color:#4a3f30;width:100%}
+.card{background:var(--card);border:1px solid var(--card-b);border-radius:14px;padding:14px;margin:8px 12px;box-shadow:0 2px 10px var(--sh)}
 .ch{display:flex;align-items:center;gap:9px;margin-bottom:8px}
-.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--navy-l),var(--navy));display:flex;align-items:center;justify-content:center;color:var(--cream);font-size:.78rem;font-weight:600;flex-shrink:0}
-.cm{flex:1;min-width:0}.cn{font-size:.88rem;font-weight:600;color:var(--navy);line-height:1.2}.ct{font-size:.7rem;color:var(--ink-f)}
-.cb{font-size:.88rem;line-height:1.7;color:var(--ink-l);word-break:break-word;white-space:pre-wrap}
-.ci{margin-top:8px;border-radius:10px;overflow:hidden;background:var(--paper-d)}
-.ci img{width:100%;display:block}
-.cf2{display:flex;align-items:center;justify-content:flex-end;margin-top:10px;padding-top:8px;border-top:1px solid rgba(201,168,76,.1)}
-
-/* Pat/Like button */
-.pbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:1px solid rgba(201,168,76,.22);border-radius:18px;background:transparent;font-family:inherit;font-size:.78rem;color:var(--ink-f);cursor:pointer;transition:.2s;-webkit-tap-highlight-color:transparent}
-.pbtn:active,.pbtn.liked{background:var(--gold-g);border-color:var(--gold-m);color:var(--gold-m);transform:scale(.95)}
-
-/* States */
-.sm{text-align:center;padding:36px 20px;color:var(--ink-f);font-size:.85rem;line-height:1.8}
-.sm .ic{font-size:1.8rem;margin-bottom:10px;display:block}
-.ld::after{content:'';animation:dots 1.4s steps(4,end) infinite}
-@keyframes dots{25%{content:'。'}50%{content:'。。'}75%{content:'。。。'}}
-
-/* Toast */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--cream);padding:9px 22px;border-radius:11px;font-size:.82rem;z-index:999;box-shadow:0 4px 18px rgba(0,0,0,.2);max-width:80vw;text-align:center;animation:tin .3s}
-@keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-
-/* Refresh */
-.rbar{display:flex;justify-content:center;padding:6px 12px}
-.rbtn{display:inline-flex;align-items:center;gap:5px;padding:7px 18px;border:1px solid rgba(201,168,76,.18);border-radius:18px;background:rgba(250,246,238,.5);font-family:inherit;font-size:.78rem;color:var(--ink-f);cursor:pointer;-webkit-tap-highlight-color:transparent}
-.rbtn:active{background:var(--gold-g)}
-.spin{display:inline-block;animation:sp .8s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-
-/* Check-in types */
-.cit{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.cit .ci-btn{flex:1;min-width:70px;padding:10px;border:1px solid var(--card-b);border-radius:12px;background:var(--card);font-family:inherit;font-size:.82rem;color:var(--ink-l);cursor:pointer;text-align:center;transition:.2s;-webkit-tap-highlight-color:transparent}
-.cit .ci-btn:active,.cit .ci-btn.done{background:var(--gold-g);border-color:var(--gold-m);color:var(--gold-m)}
-
-/* Streak display */
-.streak{text-align:center;padding:16px}
-.streak .num{font-size:2.5rem;font-weight:700;color:var(--gold-m);font-family:'Songti SC',serif}
-.streak .lbl{font-size:.78rem;color:var(--ink-f)}
-
-/* Leaderboard */
+.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2a3d5e,#1a2744);display:flex;align-items:center;justify-content:center;color:var(--cream);font-size:.78rem;flex-shrink:0}
+.cm{flex:1}.cn{font-size:.85rem;font-weight:600;color:var(--navy)}.ct{font-size:.7rem;color:#6b5d4e}
+.cb{font-size:.85rem;line-height:1.7;color:#4a3f30;word-break:break-word;white-space:pre-wrap}
+.pbtn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border:1px solid rgba(201,168,76,.22);border-radius:18px;background:transparent;font-family:inherit;font-size:.78rem;color:#6b5d4e;cursor:pointer}
+.pbtn.liked{background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold)}
+.sm{text-align:center;padding:30px 20px;color:#6b5d4e;font-size:.85rem}
+.rbar{text-align:center;padding:6px 12px}
+.rbtn{display:inline-flex;align-items:center;gap:4px;padding:7px 16px;border:1px solid rgba(201,168,76,.18);border-radius:18px;background:rgba(250,246,238,.5);font-family:inherit;font-size:.78rem;color:#6b5d4e;cursor:pointer}
+.spin{display:inline-block;animation:sp .8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.cit{display:flex;gap:8px;margin:8px 0}
+.ci-btn{flex:1;padding:10px;border:1px solid var(--card-b);border-radius:12px;background:var(--card);font-family:inherit;font-size:.82rem;color:#4a3f30;cursor:pointer;text-align:center}
+.ci-btn.done{background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold)}
+.streak{text-align:center;padding:16px}.streak .num{font-size:2.5rem;font-weight:700;color:var(--gold)}.streak .lbl{font-size:.78rem;color:#6b5d4e}
 .lb-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(201,168,76,.08)}
-.lb-rank{width:24px;height:24px;border-radius:50%;background:var(--gold-g);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--gold-m);font-weight:700}
-
-/* News list */
-.ni{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,168,76,.08);align-items:flex-start}
-.ni-r{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:var(--cream);flex-shrink:0}
-.ni-r.t{background:linear-gradient(135deg,#e74c3c,#c0392b)}
-.ni-r.n{background:var(--navy-l)}
-.ni-t{font-size:.85rem;color:var(--ink-l);line-height:1.5;flex:1}
-
-/* Poll */
-.poll-opt{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0;border:1px solid var(--card-b);border-radius:10px;cursor:pointer;transition:.2s;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
-.poll-opt:active{border-color:var(--gold-m)}
-.poll-bar{position:absolute;left:0;top:0;bottom:0;background:var(--gold-g);transition:.5s;border-radius:10px}
-.poll-txt{position:relative;z-index:1;font-size:.85rem;flex:1}
-.poll-cnt{position:relative;z-index:1;font-size:.75rem;color:var(--ink-f)}
-
-/* Mood */
-.mood-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
-.mood-btn{padding:12px 8px;border:1px solid var(--card-b);border-radius:12px;background:var(--card);font-size:1.4rem;text-align:center;cursor:pointer;transition:.2s;-webkit-tap-highlight-color:transparent}
-.mood-btn:active,.mood-btn.sel{background:var(--gold-g);border-color:var(--gold-m);transform:scale(.95)}
-.mood-board{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-.mood-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--gold-g);border-radius:14px;font-size:.78rem}
-
-/* Game sub-tabs */
-.gtabs{display:flex;gap:6px;margin:8px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.gtab{padding:6px 14px;border-radius:16px;font-size:.78rem;white-space:nowrap;cursor:pointer;border:1px solid var(--card-b);background:var(--card);color:var(--ink-f);font-family:inherit;-webkit-tap-highlight-color:transparent}
-.gtab.on{background:var(--gold-g);border-color:var(--gold-m);color:var(--gold-m)}
-
-/* Entry animation */
-.splash{position:fixed;inset:0;background:var(--navy-d);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:sout 0.5s 2s forwards}
-.splash .boat{font-size:2.5rem;animation:bsail 2s ease-out forwards}
-.splash .ltxt{font-family:'STXingkai','STKaiti','Kaiti SC',serif;color:var(--cream);font-size:1.3rem;letter-spacing:.15em;margin-top:16px;opacity:0;animation:fin .5s 1s forwards}
-@keyframes bsail{0%{transform:translateX(-100px);opacity:0}60%{opacity:1}100%{transform:translateX(0);opacity:1}}
-@keyframes fin{to{opacity:1}}
-@keyframes sout{to{opacity:0;pointer-events:none}}
-
-/* Ambient btn */
-.amb{position:fixed;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(250,246,238,.7);backdrop-filter:blur(10px);border:1px solid var(--card-b);display:flex;align-items:center;justify-content:center;font-size:1rem;cursor:pointer;z-index:50;-webkit-tap-highlight-color:transparent}
-.amb:active{transform:scale(.9)}
-
-/* Image fallback */
-.img-fb{padding:30px 12px;text-align:center;color:var(--ink-f);font-size:.78rem;background:var(--paper-d);border-radius:10px}
-
-/* Footer */
-.sfoot{text-align:center;padding:14px 20px 28px;color:var(--ink-f);font-size:.7rem;letter-spacing:.06em;opacity:.5}
-
-/* Photo grid */
+.lb-rank{width:24px;height:24px;border-radius:50%;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--gold);font-weight:700}
+.ni{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,168,76,.08)}
+.ni-r{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:var(--cream)}
+.ni-r.t{background:#e74c3c}.ni-r.n{background:#2a3d5e}
+.ni-t{font-size:.85rem;color:#4a3f30;flex:1}
+.song-card{margin:12px;background:linear-gradient(135deg,#0f1a2e,#1a2744);border-radius:16px;padding:20px;color:var(--cream)}
+.song-card .sname{font-size:1.15rem}.song-card .sartist{font-size:.82rem;opacity:.7;margin:4px 0 12px}
+.song-card .sreason{font-size:.82rem;opacity:.8;line-height:1.6;font-style:italic;border-left:2px solid var(--gold);padding-left:10px}
+.song-card .sby{font-size:.72rem;opacity:.5;margin-top:10px;text-align:right}
 .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px}
 .pcard{border-radius:12px;overflow:hidden;background:var(--card);border:1px solid var(--card-b)}
 .pcard img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.pcard .pinf{padding:8px;font-size:.75rem;color:var(--ink-l)}
-.pcard .pby{font-size:.68rem;color:var(--ink-f)}
-
-/* Song card */
-.song-card{margin:12px;background:linear-gradient(135deg,var(--navy-d),var(--navy));border-radius:16px;padding:20px;color:var(--cream)}
-.song-card .sname{font-family:'STXingkai','STKaiti','Kaiti SC',serif;font-size:1.2rem}
-.song-card .sartist{font-size:.82rem;opacity:.7;margin:4px 0 12px}
-.song-card .sreason{font-size:.82rem;opacity:.8;line-height:1.6;font-style:italic;border-left:2px solid var(--gold);padding-left:10px}
-.song-card .sby{font-size:.72rem;opacity:.5;margin-top:10px;text-align:right}
-
-/* Analysis result */
-.ar-card{background:linear-gradient(135deg,var(--cream),var(--paper));border:1px solid var(--card-b);border-radius:14px;padding:16px;margin:8px 12px}
+.pcard .pinf{padding:8px;font-size:.75rem;color:#4a3f30}
+.pcard .pby{padding:0 8px 8px;font-size:.68rem;color:#6b5d4e}
+.poll-opt{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0;border:1px solid var(--card-b);border-radius:10px;cursor:pointer;position:relative;overflow:hidden}
+.poll-bar{position:absolute;left:0;top:0;bottom:0;background:rgba(201,168,76,.12);transition:.5s;border-radius:10px}
+.poll-txt{position:relative;z-index:1;font-size:.85rem;flex:1}
+.poll-cnt{position:relative;z-index:1;font-size:.75rem;color:#6b5d4e}
+.mood-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.mood-btn{padding:12px 8px;border:1px solid var(--card-b);border-radius:12px;background:var(--card);font-size:1.4rem;text-align:center;cursor:pointer}
+.mood-btn.sel{background:rgba(201,168,76,.15);border-color:var(--gold)}
+.mood-board{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.mood-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(201,168,76,.12);border-radius:14px;font-size:.78rem}
+.gtabs{display:flex;gap:6px;margin:8px 12px;overflow-x:auto}
+.gtab{padding:6px 14px;border-radius:16px;font-size:.78rem;white-space:nowrap;cursor:pointer;border:1px solid var(--card-b);background:var(--card);color:#6b5d4e;font-family:inherit}
+.gtab.on{background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold)}
+.splash{position:fixed;inset:0;background:#0f1a2e;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:sout .5s 2s forwards}
+.splash .boat{font-size:2.5rem;animation:bsail 2s ease-out forwards}
+.splash .ltxt{color:var(--cream);font-size:1.3rem;letter-spacing:.15em;margin-top:16px;opacity:0;animation:fin .5s 1s forwards}
+@keyframes bsail{0%{transform:translateX(-100px);opacity:0}60%{opacity:1}100%{transform:translateX(0)}}
+@keyframes fin{to{opacity:1}}@keyframes sout{to{opacity:0;pointer-events:none}}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1a2744;color:var(--cream);padding:9px 22px;border-radius:11px;font-size:.82rem;z-index:999;animation:tin .3s;max-width:80vw;text-align:center}
+@keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.amb{position:fixed;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(250,246,238,.7);backdrop-filter:blur(10px);border:1px solid var(--card-b);display:flex;align-items:center;justify-content:center;font-size:1rem;cursor:pointer;z-index:50}
+.ar-card{background:var(--cream);border:1px solid var(--card-b);border-radius:14px;padding:16px;margin:8px 12px}
 .ar-dim{margin:6px 0;padding:6px 0;border-bottom:1px solid rgba(201,168,76,.1)}
-.ar-dim:last-child{border:none}
-.ar-label{font-size:.78rem;color:var(--gold-m);font-weight:600}
-.ar-val{font-size:.85rem;color:var(--ink-l);margin-top:2px;line-height:1.5}
-.ar-note{font-size:.72rem;color:var(--ink-f);font-style:italic;margin-top:10px}
-
-.fade-enter-active,.fade-leave-active{transition:opacity .3s}
-.fade-enter-from,.fade-leave-to{opacity:0}
+.ar-label{font-size:.78rem;color:var(--gold);font-weight:600}
+.ar-val{font-size:.85rem;color:#4a3f30;margin-top:2px;line-height:1.5}
+.ar-note{font-size:.72rem;color:#6b5d4e;font-style:italic;margin-top:10px}
+.fade-enter-active,.fade-leave-active{transition:opacity .3s}.fade-enter-from,.fade-leave-to{opacity:0}
 </style>
 </head>
 <body>
-<div id="app">
-
+<div id=app>
 <!-- Splash -->
 <div class="splash" v-if="showSplash" @click="showSplash=false">
-  <div class="boat">⛵</div>
-  <div class="ltxt">岛屿来信</div>
+  <div class="boat">&#9973;</div>
+  <div class="ltxt">&#23707;&#23665;&#26469;&#20449;</div>
 </div>
 
 <!-- Toast -->
-<transition name="fade"><div class="toast" v-if="toast.msg" v-text="toast.msg"></div></transition>
+<transition name="fade"><div class="toast" v-if="toastMsg" v-text="toastMsg"></div></transition>
 
 <!-- Ambient toggle -->
-<div class="amb" @click="toggleAmbient" :title="ambientOn?'关闭海浪声':'开启海浪声'">
-  {{ ambientOn ? '🔊' : '🔈' }}
-</div>
+<div class="amb" @click="toggleAmbient">{{ ambientOn ? '&#128266;' : '&#128264;' }}</div>
 
 <!-- Hero -->
 <header class="hero">
-  <img class="hero-img" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=960&q=80" alt="">
   <div class="hero-ov">
-    <h1 class="hero-t">岛屿来信</h1>
+    <h1 class="hero-t">&#23707;&#23665;&#26469;&#20449;</h1>
     <p class="hero-s" v-text="heroSub"></p>
   </div>
 </header>
 
-<!-- Toast nickname prompt if no nickname -->
+<!-- Nickname prompt -->
 <div class="gc" v-if="!nickname" style="text-align:center">
-  <div class="cf">
-    <label>给自己取个岛上昵称吧</label>
-    <input v-model="nickInput" placeholder="岛上的人" maxlength="20" @keyup.enter="setNick">
+  <div class="cf"><label>&#32473;&#33258;&#24049;&#21462;&#20010;&#23707;&#19978;&#26143;&#31216;&#21543;</label>
+    <input v-model="nickInput" placeholder="&#23707;&#19978;&#30340;&#20154;" @keyup.enter="setNick">
   </div>
-  <button class="btn btn-p" @click="setNick" :disabled="!nickInput">🏝 登岛</button>
+  <button class="btn btn-p" @click="setNick" :disabled="!nickInput">&#127965; &#30331;&#23707;</button>
 </div>
 
-<!-- TAB 1: 广场 -->
-<template v-if="tab==='feed'">
+<div v-show="tab==='feed'">
   <div class="stitle">写点近况</div>
-  <div class="gc compose">
+  <div class="gc">
     <div class="cf"><label>想说的话</label>
-      <textarea v-model="feedForm.content" placeholder="今天怎么样？" maxlength="1000" rows="3"></textarea>
+      <textarea v-model="feedForm.content" placeholder="今天怎么样？" rows="3" maxlength="1000"></textarea>
     </div>
-    <div class="crow">
-      <div class="cf"><label>图片链接(可选)</label><input v-model="feedForm.mediaUrl" placeholder="https://..."></div>
-      <div class="cf" style="flex:0 0 80px"><label>类型</label>
-        <select v-model="feedForm.mediaType"><option value="text">文字</option><option value="image">图片</option></select>
-      </div>
-    </div>
+    <div class="cf"><label>图片链接(可选)</label><input v-model="feedForm.mediaUrl" placeholder="https://..."></div>
     <button class="btn btn-p" @click="postFeed" :disabled="posting||!feedForm.content">{{posting?'投递中…':'✉ 投递到小岛'}}</button>
   </div>
-  <div class="rbar"><button class="rbtn" @click="loadFeed" :disabled="loadingFeed"><span v-if="loadingFeed" class="spin">⟳</span><span v-else>⟳</span> {{loadingFeed?'打捞中…':'刷新'}}</button></div>
+  <div class="rbar"><button class="rbtn" @click="loadFeed"><span v-if="loadingFeed" class="spin">⟳</span><span v-else>⟳</span> 刷新</button></div>
   <div class="stitle">最近的来信</div>
-  <div class="sm" v-if="loadingFeed&&feedList.length===0"><span class="ic">🌊</span><span class="ld">正在从海面打捞</span></div>
-  <div class="sm" v-else-if="!loadingFeed&&feedList.length===0"><span class="ic">🏝</span>还没有来信，写下第一句吧</div>
+  <div class="sm" v-if="loadingFeed&&feedList.length===0">🌊 正在打捞中...</div>
+  <div class="sm" v-else-if="!loadingFeed&&feedList.length===0">🏝 还没有人写，写下第一句吧</div>
   <div class="card" v-for="m in feedList" :key="m.id">
-    <div class="ch"><div class="av">{{(m.nickname||'岛')[0]}}</div><div class="cm"><div class="cn" v-text="m.nickname"></div><div class="ct" v-text="fmtTime(m.ts)"></div></div></div>
-    <div class="cb" v-text="m.content"></div>
-    <div class="ci" v-if="m.mediaType==='image'&&m.mediaUrl"><img :src="m.mediaUrl" loading="lazy" @error="$event.target.parentElement.innerHTML='<div class=img-fb>📷 图片加载失败</div>'"></div>
-    <div class="cf2"><button class="pbtn" :class="{liked:liked[m.id]}" @click="likeFeed(m)">❤ <span v-if="m.likes">{{m.likes}}</span></button></div>
+    <div class="ch"><div class="av">{{(m.nickname||'岛')[0]}}</div><div class="cm"><div class="cn">{{m.nickname}}</div><div class="ct">{{fmtTime(m.ts)}}</div></div></div>
+    <div class="cb">{{m.content}}</div>
+    <div style="text-align:right;margin-top:8px"><button class="pbtn" :class="{liked:liked[m.id]}" @click="likeFeed(m)">❤ {{m.likes||''}}</button></div>
   </div>
-</template>
+</div>
 
-<!-- TAB 2: 打卡 -->
-<template v-if="tab==='checkin'">
-  <div class="stitle">{{todayStr}} · 今日打卡</div>
+<div v-show="tab==='checkin'">
+  <div class="stitle">今日打卡</div>
   <div class="gc">
     <div class="cit">
       <button class="ci-btn" v-for="t in ciTypes" :key="t.id" :class="{done:todayCI[t.id]}" @click="doCheckin(t.id)">
@@ -239,66 +144,56 @@ body{font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;color:var(-
     </div>
   </div>
   <div class="gc" v-if="myStreak>0">
-    <div class="streak"><div class="num">{{myStreak}}</div><div class="lbl">🔥 连续打卡天数</div></div>
+    <div class="streak"><div class="num">{{myStreak}}</div><div class="lbl">🔥 连续打卡</div></div>
   </div>
-  <div class="stitle">今日谁打卡了</div>
-  <div class="sm" v-if="todayCheckins.length===0">还没有人打卡，抢个第一吧 🥇</div>
+  <div class="stitle">今日谁打卡</div>
+  <div class="sm" v-if="todayCheckins.length===0">还没有人打卡 🥇</div>
   <div class="card" v-for="c in todayCheckins" :key="c.id">
-    <div class="ch"><div class="av">{{(c.nickname||'岛')[0]}}</div><div class="cm"><div class="cn" v-text="c.nickname"></div><div class="ct">{{ciLabel(c.type)}} · {{fmtTime(c.ts)}}</div></div></div>
+    <div class="ch"><div class="av">{{(c.nickname||'岛')[0]}}</div><div class="cm"><div class="cn">{{c.nickname}}</div><div class="ct">{{ciLabel(c.type)}} · {{fmtTime(c.ts)}}</div></div></div>
   </div>
-  <div class="stitle">🏆 打卡排行榜</div>
+  <div class="stitle">🏆 排行榜</div>
   <div class="gc">
     <div class="lb-item" v-for="(u,i) in ciRank" :key="u.nick">
-      <div class="lb-rank">{{i+1}}</div>
-      <div style="flex:1"><div class="cn" v-text="u.nick"></div></div>
-      <div style="color:var(--gold-m);font-weight:600">{{u.days}}天</div>
+      <div class="lb-rank">{{i+1}}</div><div style="flex:1"><div class="cn">{{u.nick}}</div></div>
+      <div style="color:var(--gold);font-weight:600">{{u.days}}天</div>
     </div>
-    <div class="sm" v-if="ciRank.length===0">还没有打卡记录</div>
   </div>
-</template>
+</div>
 
-<!-- TAB 3: 笔迹分析 -->
-<template v-if="tab==='analysis'">
+<div v-show="tab==='analysis'">
   <div class="stitle">笔迹性格分析</div>
   <div class="gc">
-    <div class="cf"><label>上传笔迹图片链接</label><input v-model="analysisForm.imgUrl" placeholder="图片URL（可选）"></div>
-    <div class="cf"><label>描述笔迹特征或提问</label><textarea v-model="analysisForm.desc" placeholder="比如：字迹偏右倾斜，字间距较小，横画上扬..." rows="4"></textarea></div>
+    <div class="cf"><label>图片链接(可选)</label><input v-model="analysisForm.imgUrl" placeholder="https://..."></div>
+    <div class="cf"><label>描述笔迹特征</label><textarea v-model="analysisForm.desc" placeholder="比如：字迹偏右倾斜，字间距较小，横画上扬..." rows="4"></textarea></div>
     <button class="btn btn-p" @click="startAnalysis" :disabled="analyzing||!analysisForm.desc">{{analyzing?'分析中…':'✍️ 开始分析'}}</button>
   </div>
-  <div class="gc" style="margin:8px 12px;font-size:.78rem;color:var(--ink-f);line-height:1.6">
-    📝 八维度分析：城府 / 个人品德 / 家庭观念 / 婚恋心理 / 思维方式 / 对外情绪 / 个人气质 / 个人天赋<br>
-    ⚠️ AI分析仅供参考，不作为人格定论。建议结合多样本综合判断。
+  <div class="gc" style="font-size:.78rem;color:#6b5d4e;line-height:1.6">
+    📝 八维度：城府/品德/家庭/婚恋/思维/情绪/气质/天赋<br>⚠️ AI分析仅供参考，不作为人格定论
   </div>
   <div v-if="analysisResult">
     <div class="stitle">分析结果</div>
     <div class="ar-card">
       <div class="ar-dim" v-for="d in analysisResult" :key="d.dim">
-        <div class="ar-label">{{d.dim}}</div>
-        <div class="ar-val">{{d.text}}</div>
+        <div class="ar-label">{{d.dim}}</div><div class="ar-val">{{d.text}}</div>
       </div>
-      <div class="ar-note">⚠️ 笔迹分析基于特征假设，需结合多样本和情境综合判断。单一样本仅供参考。</div>
+      <div class="ar-note">⚠️ 单一样本仅供参考，需结合多样本综合判断</div>
     </div>
   </div>
-</template>
+</div>
 
-<!-- TAB 4: 热榜 -->
-<template v-if="tab==='news'">
+<div v-show="tab==='news'">
   <div class="stitle">今日热榜</div>
-  <div class="rbar"><button class="rbtn" @click="loadNews" :disabled="loadingNews"><span v-if="loadingNews" class="spin">⟳</span><span v-else>⟳</span> {{loadingNews?'刷新中…':'刷新热榜'}}</button></div>
-  <div class="sm" v-if="loadingNews&&newsList.length===0"><span class="ic">🔥</span><span class="ld">正在获取热榜</span></div>
+  <div class="rbar"><button class="rbtn" @click="loadNews"><span v-if="loadingNews" class="spin">⟳</span><span v-else>⟳</span> 刷新热榜</button></div>
+  <div class="sm" v-if="loadingNews&&newsList.length===0">🔥 加载中...</div>
   <div class="gc" v-for="(n,i) in newsList" :key="i">
     <div class="ni">
       <div class="ni-r" :class="i<3?'t':'n'">{{i+1}}</div>
-      <a class="ni-t" :href="n.url||'#'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
-        {{n.title}} <span v-if="i<3">🔥</span>
-      </a>
+      <a class="ni-t" :href="n.url||'#'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">{{n.title}} <span v-if="i<3">🔥</span></a>
     </div>
   </div>
-  <div class="sm" v-if="!loadingNews&&newsList.length===0">暂无热榜数据</div>
-</template>
+</div>
 
-<!-- TAB 5: 今日歌 -->
-<template v-if="tab==='song'">
+<div v-show="tab==='song'">
   <div class="stitle">今日推荐</div>
   <div class="song-card" v-if="todaySong">
     <div class="sname">🎵 {{todaySong.songName}}</div>
@@ -307,49 +202,46 @@ body{font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;color:var(-
     <div class="sby">—— {{todaySong.nickname}} 推荐</div>
     <audio v-if="todaySong.url" :src="todaySong.url" controls style="width:100%;margin-top:12px;opacity:.8"></audio>
   </div>
-  <div class="sm" v-if="!todaySong"><span class="ic">🎵</span>今天还没有人推荐歌曲</div>
-  <div class="gc compose">
+  <div class="sm" v-if="!todaySong">🎵 今天还没有人推荐</div>
+  <div class="gc">
     <div class="stitle" style="padding:0 0 6px">我要推荐</div>
     <div class="cf"><label>歌名</label><input v-model="songForm.songName" placeholder="歌曲名"></div>
     <div class="cf"><label>歌手</label><input v-model="songForm.artist" placeholder="歌手"></div>
-    <div class="cf"><label>推荐理由</label><textarea v-model="songForm.reason" placeholder="为什么推荐这首歌？" rows="2"></textarea></div>
+    <div class="cf"><label>推荐理由</label><textarea v-model="songForm.reason" placeholder="为什么推荐？" rows="2"></textarea></div>
     <div class="cf"><label>音乐链接(可选)</label><input v-model="songForm.url" placeholder="https://..."></div>
-    <button class="btn btn-p" @click="postSong" :disabled="postingSong||!songForm.songName">{{postingSong?'推荐中…':'🎵 推荐给朋友们'}}</button>
+    <button class="btn btn-p" @click="postSong" :disabled="postingSong||!songForm.songName">{{postingSong?'推荐中…':'🎵 推荐'}}</button>
   </div>
   <div class="stitle">往期推荐</div>
   <div class="gc" v-for="s in songHistory" :key="s.id">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:1.2rem">🎵</span>
+    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:1.2rem">🎵</span>
       <div style="flex:1"><div class="cn">{{s.songName}} - {{s.artist}}</div><div class="ct">{{s.nickname}} · {{fmtDate(s.date)}}</div></div>
     </div>
-    <div v-if="s.reason" style="font-size:.82rem;color:var(--ink-l);margin-top:6px;font-style:italic">"{{s.reason}}"</div>
+    <div v-if="s.reason" style="font-size:.82rem;color:#4a3f30;margin-top:6px;font-style:italic">"{{s.reason}}"</div>
   </div>
-</template>
+</div>
 
-<!-- TAB 6: 每日图 -->
-<template v-if="tab==='photo'">
+<div v-show="tab==='photo'">
   <div class="stitle">今日光影</div>
   <div class="rbar"><button class="btn btn-s" @click="showPhotoForm=!showPhotoForm" style="width:auto;padding:7px 18px">{{showPhotoForm?'收起':'📸 发一张'}}</button></div>
-  <div class="gc compose" v-if="showPhotoForm">
+  <div class="gc" v-if="showPhotoForm">
     <div class="cf"><label>图片链接</label><input v-model="photoForm.imageUrl" placeholder="https://..."></div>
     <div class="cf"><label>配文</label><input v-model="photoForm.caption" placeholder="一句话说明"></div>
-    <button class="btn btn-p" @click="postPhoto" :disabled="postingPhoto||!photoForm.imageUrl">{{postingPhoto?'上传中…':'📸 发布'}}</button>
+    <button class="btn btn-p" @click="postPhoto" :disabled="postingPhoto||!photoForm.imageUrl">{{postingPhoto?'发布中…':'📸 发布'}}</button>
   </div>
   <div class="pgrid">
     <div class="pcard" v-for="p in photoList" :key="p.id">
-      <img :src="p.imageUrl" loading="lazy" @error="$event.target.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23e8e0d0%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%236b5d4e%22 font-size=%2240%22%3E📷%3C/text%3E%3C/svg%3E'">
-      <div class="pinf" v-if="p.caption" v-text="p.caption"></div>
+      <img :src="p.imageUrl" loading="lazy" @error="$event.target.parentElement.innerHTML+='<div style=padding:12px;text-align:center;color:#6b5d4e;font-size:.75rem>📷 加载失败</div>'">
+      <div class="pinf" v-if="p.caption">{{p.caption}}</div>
       <div class="pby">{{p.nickname}} · {{fmtDate(p.date)}}</div>
     </div>
   </div>
-  <div class="sm" v-if="photoList.length===0"><span class="ic">📸</span>还没有照片，来发第一张吧</div>
-</template>
+  <div class="sm" v-if="photoList.length===0">📸 还没有照片</div>
+</div>
 
-<!-- TAB 7: 问答投票 -->
-<template v-if="tab==='poll'">
+<div v-show="tab==='poll'">
   <div class="stitle">岛屿问答</div>
   <div class="rbar"><button class="btn btn-s" @click="showPollForm=!showPollForm" style="width:auto;padding:7px 18px">{{showPollForm?'收起':'💬 创建投票'}}</button></div>
-  <div class="gc compose" v-if="showPollForm">
+  <div class="gc" v-if="showPollForm">
     <div class="cf"><label>投票问题</label><input v-model="pollForm.question" placeholder="比如：下周聚餐去哪？"></div>
     <div class="cf" v-for="(o,i) in pollForm.options" :key="i">
       <label>选项{{i+1}}</label>
@@ -370,11 +262,10 @@ body{font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;color:var(-
     </div>
     <div class="ct" style="text-align:right;margin-top:6px">共{{pollTotal(p)}}票</div>
   </div>
-  <div class="sm" v-if="pollList.length===0"><span class="ic">💬</span>还没有投票，创建一个吧</div>
-</template>
+  <div class="sm" v-if="pollList.length===0">💬 还没有投票</div>
+</div>
 
-<!-- TAB 8: 游戏 -->
-<template v-if="tab==='game'">
+<div v-show="tab==='game'">
   <div class="stitle">岛屿游戏</div>
   <div class="gtabs">
     <button class="gtab" :class="{on:gameTab==='mood'}" @click="gameTab='mood'">🌤 心情天气</button>
@@ -383,8 +274,7 @@ body{font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;color:var(-
     <button class="gtab" :class="{on:gameTab==='dailyq'}" @click="gameTab='dailyq'">❓ 每日一问</button>
   </div>
 
-  <!-- Mood -->
-  <template v-if="gameTab==='mood'">
+  <div v-show="gameTab==='mood'">
     <div class="gc">
       <div class="stitle" style="padding:0 0 6px">今天的心情</div>
       <div class="mood-grid">
@@ -398,58 +288,50 @@ body{font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;color:var(-
       </div>
       <div class="sm" v-if="moodBoard.length===0" style="padding:12px">还没有人记录心情</div>
     </div>
-  </template>
+  </div>
 
-  <!-- 成语接龙 -->
-  <template v-if="gameTab==='chain'">
+  <div v-show="gameTab==='chain'">
     <div class="gc">
       <div class="stitle" style="padding:0 0 6px">成语接龙</div>
       <div v-if="chainWord" style="text-align:center;padding:12px">
-        <div style="font-size:.78rem;color:var(--ink-f)">当前成语</div>
+        <div style="font-size:.78rem;color:#6b5d4e">当前成语</div>
         <div style="font-size:1.6rem;font-weight:700;color:var(--navy);letter-spacing:.1em">{{chainWord}}</div>
-        <div style="font-size:.78rem;color:var(--gold-m);margin-top:4px">请接「{{chainWord.slice(-1)}}」开头的成语</div>
+        <div style="font-size:.78rem;color:var(--gold);margin-top:4px">请接「{{chainWord.slice(-1)}}」开头的成语</div>
       </div>
       <div class="cf"><input v-model="chainInput" placeholder="输入成语" @keyup.enter="submitChain"></div>
       <button class="btn btn-p" @click="submitChain" :disabled="!chainInput">接龙！</button>
       <div v-if="chainHistory.length" style="margin-top:10px">
-        <div v-for="(h,i) in chainHistory.slice().reverse()" :key="i" style="padding:4px 0;font-size:.85rem;color:var(--ink-l);border-bottom:1px solid rgba(201,168,76,.06)">
-          {{h.word}} <span style="font-size:.72rem;color:var(--ink-f)">— {{h.nick}}</span>
+        <div v-for="(h,i) in chainHistory.slice().reverse()" :key="i" style="padding:4px 0;font-size:.85rem;color:#4a3f30;border-bottom:1px solid rgba(201,168,76,.06)">
+          {{h.word}} <span style="font-size:.72rem;color:#6b5d4e">— {{h.nick}}</span>
         </div>
       </div>
     </div>
-  </template>
+  </div>
 
-  <!-- 真心话 -->
-  <template v-if="gameTab==='truth'">
-    <div class="gc" style="text-align:center;padding:24px">
-      <div style="font-size:2rem;margin-bottom:12px">🎲</div>
-      <div style="font-size:1.1rem;color:var(--navy);line-height:1.6;min-height:60px" v-text="truthQ||'点击按钮抽取真心话'"></div>
-      <button class="btn btn-p" @click="genTruth" style="margin-top:16px">🎲 抽一个</button>
-    </div>
-  </template>
+  <div v-show="gameTab==='truth'" class="gc" style="text-align:center;padding:24px">
+    <div style="font-size:2rem;margin-bottom:12px">🎲</div>
+    <div style="font-size:1.05rem;color:var(--navy);line-height:1.6;min-height:60px">{{truthQ||'点击按钮抽取真心话'}}</div>
+    <button class="btn btn-p" @click="genTruth" style="margin-top:16px">🎲 抽一个</button>
+  </div>
 
-  <!-- 每日一问 -->
-  <template v-if="gameTab==='dailyq'">
+  <div v-show="gameTab==='dailyq'">
     <div class="gc" style="text-align:center;padding:20px">
-      <div style="font-size:.78rem;color:var(--ink-f)">今日一问</div>
-      <div style="font-size:1.05rem;color:var(--navy);line-height:1.6;margin:10px 0" v-text="dailyQ"></div>
+      <div style="font-size:.78rem;color:#6b5d4e">今日一问</div>
+      <div style="font-size:1.05rem;color:var(--navy);line-height:1.6;margin:10px 0">{{dailyQ}}</div>
     </div>
-    <div class="gc compose">
+    <div class="gc">
       <div class="cf"><label>我的回答</label><textarea v-model="dqAnswer" placeholder="说说你的想法..." rows="2"></textarea></div>
       <button class="btn btn-p" @click="submitDQ" :disabled="!dqAnswer">提交回答</button>
     </div>
     <div class="stitle">大家的回答</div>
     <div class="card" v-for="a in dqAnswers" :key="a.id">
-      <div class="ch"><div class="av">{{(a.nick||'岛')[0]}}</div><div class="cm"><div class="cn" v-text="a.nick"></div><div class="ct" v-text="fmtTime(a.ts)"></div></div></div>
-      <div class="cb" v-text="a.answer"></div>
+      <div class="ch"><div class="av">{{(a.nick||'岛')[0]}}</div><div class="cm"><div class="cn">{{a.nick}}</div><div class="ct">{{fmtTime(a.ts)}}</div></div></div>
+      <div class="cb">{{a.answer}}</div>
     </div>
-  </template>
-</template>
+  </div>
+</div>
 
-<!-- Footer -->
-<footer class="sfoot">岛屿来信 · 旧朋友的小岛 · {{new Date().getFullYear()}}</footer>
-
-<!-- Bottom Navigation -->
+<!-- Bottom Nav -->
 <nav class="bnav" v-if="nickname">
   <button class="tab" :class="{on:tab==='feed'}" @click="switchTab('feed')"><span class="ico">📮</span>广场</button>
   <button class="tab" :class="{on:tab==='checkin'}" @click="switchTab('checkin')"><span class="ico">✅</span>打卡</button>
@@ -460,15 +342,22 @@ body{font-family:'Songti SC','STSong','SimSun','Noto Serif SC',serif;color:var(-
   <button class="tab" :class="{on:tab==='poll'}" @click="switchTab('poll')"><span class="ico">💬</span>问答</button>
   <button class="tab" :class="{on:tab==='game'}" @click="switchTab('game')"><span class="ico">🎮</span>游戏</button>
 </nav>
+
+<footer style="text-align:center;padding:14px 20px 28px;color:#6b5d4e;font-size:.7rem;opacity:.5">岛屿来信 · 旧朋友的小岛</footer>
 </div>
 
 <script>
-// ===== LeanCloud Config =====
-const LC_CFG={APP_ID:'你的_APP_ID',APP_KEY:'你的_APP_KEY',SERVER_URL:'你的_SERVER_URL'};
-let AV=window.AV,LC=null,LCReady=false;
-if(AV&&LC_CFG.APP_ID&&!LC_CFG.APP_ID.startsWith('你的')){try{AV.init({appId:LC_CFG.APP_ID,appKey:LC_CFG.APP_KEY,serverURL:LC_CFG.SERVER_URL});LC=AV.Object.extend('Moment');LCReady=true;}catch(e){console.error(e);}}
-
+try{
 const{createApp,ref,reactive,computed,onMounted}=Vue;
+
+const LC_CFG={APP_ID:'你的_APP_ID',APP_KEY:'你的_APP_KEY',SERVER_URL:'你的_SERVER_URL'};
+let LCReady=false,LC=null;
+try{
+  if(window.AV&&LC_CFG.APP_ID&&LC_CFG.APP_ID!=='你的_APP_ID'){
+    AV.init({appId:LC_CFG.APP_ID,appKey:LC_CFG.APP_KEY,serverURL:LC_CFG.SERVER_URL});
+    LC=AV.Object.extend('Moment');LCReady=true;
+  }
+}catch(e){console.warn('LeanCloud init skipped:',e);}
 
 createApp({
 setup(){
@@ -476,352 +365,208 @@ const nickname=ref(localStorage.getItem('il_nick')||'');
 const nickInput=ref('');
 const tab=ref('feed');
 const showSplash=ref(true);
-const toast=reactive({msg:'',t:null});
+const toastMsg=ref('');
 const ambientOn=ref(false);
-let audioCtx=null,ambientOsc=null;
+let toastT=null,audioCtx=null,ambientOsc=null;
 
-// Hero subtitles per tab
-const heroMap={feed:'近况广场 · 朋友们的日常碎片',checkin:'每日打卡 · 坚持的每一天都算数',analysis:'笔迹分析 · 一笔一划都是你',news:'今日热榜 · 世界每天都在发生什么',song:'今日推荐 · 这首歌唱给你听',photo:'每日一图 · 今天的光影留给你',poll:'岛屿问答 · 猜猜朋友们怎么想',game:'岛屿游戏 · 来玩点什么吧'};
+const heroMap={feed:'近况广场 · 朋友们的日常碎片',checkin:'每日打卡 · 坚持的每一天都算数',analysis:'笔迹分析 · 一笔一划都是你',news:'今日热榜 · 世界每天都在发生什么',song:'今日推荐 · 这首歌想唱给你听',photo:'每日一图 · 今天的光影留给你',poll:'岛屿问答 · 猜猜朋友们怎么想',game:'岛屿游戏 · 来玩点什么吧'};
 const heroSub=computed(()=>heroMap[tab.value]||'岛屿来信');
 
-// Toast
-function show(msg,d=2200){toast.msg=msg;clearTimeout(toast.t);toast.t=setTimeout(()=>toast.msg='',d);}
-
-// Nickname
-function setNick(){if(!nickInput.value.trim())return;nickname.value=nickInput.value.trim();localStorage.setItem('il_nick',nickname.value);show('欢迎登岛，'+nickname.value+' 🏝');}
-
-// Tab switch
+function showToast(msg,d){toastMsg.value=msg;clearTimeout(toastT);toastT=setTimeout(()=>toastMsg.value='',d||2200);}
+function setNick(){if(!nickInput.value.trim())return;nickname.value=nickInput.value.trim();localStorage.setItem('il_nick',nickname.value);showToast('欢迎登岛，'+nickname.value+' 🏝');}
 function switchTab(t){tab.value=t;}
 
-// Time format
-function fmtTime(ts){if(!ts)return'';let d=ts instanceof Date?ts:new Date(ts.iso||ts);if(isNaN(d))return'';const diff=Date.now()-d;if(diff<60000)return'刚刚';if(diff<3600000)return Math.floor(diff/60000)+'分钟前';if(diff<86400000)return Math.floor(diff/3600000)+'小时前';const p=n=>String(n).padStart(2,'0');return(d.getMonth()+1)+'月'+d.getDate()+'日 '+p(d.getHours())+':'+p(d.getMinutes());}
+function fmtTime(ts){if(!ts)return'';const d=ts instanceof Date?ts:new Date(ts.iso||ts);if(isNaN(d))return'';const diff=Date.now()-d;if(diff<60000)return'刚刚';if(diff<3600000)return Math.floor(diff/60000)+'分钟前';if(diff<86400000)return Math.floor(diff/3600000)+'小时前';return(d.getMonth()+1)+'月'+d.getDate()+'日';}
 function fmtDate(d){if(!d)return'';const dd=new Date(d);if(isNaN(dd))return d;return(dd.getMonth()+1)+'月'+dd.getDate()+'日';}
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
-// ===== FEED =====
+// Feed
 const feedList=ref([]);const loadingFeed=ref(false);const posting=ref(false);const liked=reactive({});
-const feedForm=reactive({content:'',mediaType:'text',mediaUrl:''});
+const feedForm=reactive({content:'',mediaUrl:''});
 
 async function loadFeed(){
-  if(!LCReady){return;}
-  loadingFeed.value=true;
-  try{
-    const q=new AV.Query('Moment');q.descending('createdAt');q.limit(20);
-    const r=await q.find();
-    feedList.value=r.map(o=>({id:o.id,nickname:o.get('nickname')||'',content:o.get('content')||'',mediaType:o.get('mediaType')||'text',mediaUrl:o.get('mediaUrl')||'',ts:o.createdAt,likes:o.get('likes')||0}));
-  }catch(e){console.error(e);show('加载失败');}
-  finally{loadingFeed.value=false;}
+  if(!LCReady)return;loadingFeed.value=true;
+  try{const q=new AV.Query('Moment');q.descending('createdAt');q.limit(20);
+    const r=await q.find();feedList.value=r.map(o=>({id:o.id,nickname:o.get('nickname'),content:o.get('content'),mediaUrl:o.get('mediaUrl'),ts:o.createdAt,likes:o.get('likes')||0}));
+  }catch(e){console.error(e);}finally{loadingFeed.value=false;}
 }
-
 async function postFeed(){
-  if(!LCReady){show('LeanCloud未配置');return;}
-  if(!feedForm.content){show('写点什么吧');return;}
-  posting.value=true;
-  try{
-    const m=new LC();m.set('nickname',nickname.value);m.set('content',feedForm.content);m.set('mediaType',feedForm.mediaType);m.set('mediaUrl',feedForm.mediaUrl);m.set('likes',0);
-    await m.save();show('✉ 来信已抵达小岛');
-    feedForm.content='';feedForm.mediaUrl='';feedForm.mediaType='text';
-    await loadFeed();
-  }catch(e){console.error(e);show('发布失败');}
-  finally{posting.value=false;}
+  if(!LCReady){showToast('LeanCloud未配置');return;}if(!feedForm.content)return;
+  posting.value=true;try{const m=LC;m.set('nickname',nickname.value);m.set('content',feedForm.content);m.set('mediaUrl',feedForm.mediaUrl);m.set('likes',0);await new LC().save();
+  showToast('✉ 来信已到达');feedForm.content='';feedForm.mediaUrl='';await loadFeed();}catch(e){showToast('发布失败');console.error(e);}finally{posting.value=false;}
 }
+function likeFeed(m){if(liked[m.id])return;liked[m.id]=true;m.likes=(m.likes||0)+1;if(!LCReady)return;
+  try{const o=AV.Object.createWithoutData('Moment',m.id);o.increment('likes');o.save();}catch(e){}}
 
-async function likeFeed(m){
-  if(liked[m.id])return;liked[m.id]=true;m.likes=(m.likes||0)+1;
-  if(!LCReady)return;
-  try{const o=AV.Object.createWithoutData('Moment',m.id);o.increment('likes');await o.save();}catch(e){m.likes--;delete liked[m.id];}
-}
-
-// ===== CHECK-IN =====
+// Check-in
 const ciTypes=[{id:'early',icon:'🌅',label:'早起'},{id:'gym',icon:'💪',label:'健身'},{id:'read',icon:'📚',label:'读书'},{id:'other',icon:'✨',label:'自定义'}];
 const todayCI=reactive({});const todayCheckins=ref([]);const ciRank=ref([]);const myStreak=ref(0);
-
 function ciLabel(id){return(ciTypes.find(t=>t.id===id)||{}).label||id;}
 
 async function doCheckin(type){
-  if(todayCI[type])return;
-  if(!LCReady){show('LeanCloud未配置');return;}
-  try{
-    const ci=AV.Object.extend('CheckIn');const o=new ci();
-    o.set('nickname',nickname.value);o.set('type',type);o.set('date',todayKey());o.set('ts',new Date().toISOString());
-    await o.save();todayCI[type]=true;show('打卡成功！🔥');
-    await loadCheckin();
-  }catch(e){console.error(e);show('打卡失败');}
+  if(todayCI[type]||!LCReady)return;
+  try{const o=new(AV.Object.extend('CheckIn'))();o.set('nickname',nickname.value);o.set('type',type);o.set('date',todayKey());await o.save();todayCI[type]=true;showToast('打卡成功！🔥');await loadCheckin();}catch(e){showToast('打卡失败');}
 }
-
 async function loadCheckin(){
-  if(!LCReady)return;
-  try{
+  if(!LCReady)return;try{
     const CI=AV.Object.extend('CheckIn');const q=new AV.Query(CI);q.equalTo('date',todayKey());q.descending('createdAt');
-    const r=await q.find();
-    todayCheckins.value=r.map(o=>({id:o.id,nickname:o.get('nickname'),type:o.get('type'),ts:o.createdAt}));
-    // My streak
+    const r=await q.find();todayCheckins.value=r.map(o=>({id:o.id,nickname:o.get('nickname'),type:o.get('type'),ts:o.createdAt}));
+    r.filter(o=>o.get('nickname')===nickname.value).forEach(o=>todayCI[o.get('type')]=true);
     const q2=new AV.Query(CI);q2.equalTo('nickname',nickname.value);q2.descending('date');q2.limit(30);
     const r2=await q2.find();const dates=[...new Set(r2.map(o=>o.get('date')))].sort().reverse();
-    let streak=0;const td=todayKey();
-    for(let i=0;i<dates.length;i++){const exp=new Date(td);exp.setDate(exp.getDate()-i);const ek=exp.getFullYear()+'-'+String(exp.getMonth()+1).padStart(2,'0')+'-'+String(exp.getDate()).padStart(2,'0');if(dates.includes(ek))streak++;else break;}
-    myStreak.value=streak;
-    // Rank
-    const q3=new AV.Query(CI);q3.select('nickname','date');q3.limit(1000);const r3=await q3.find();
-    const cnt={};r3.forEach(o=>{const n=o.get('nickname');const d=o.get('date');if(!cnt[n])cnt[n]=new Set();cnt[n].add(d);});
-    ciRank.value=Object.entries(cnt).map(([nick,s])=>({nick,days:s.size})).sort((a,b)=>b.days-a.days).slice(0,10);
-    // Check today
-    const myToday=r.filter(o=>o.get('nickname')===nickname.value);
-    myToday.forEach(o=>todayCI[o.get('type')]=true);
+    let s=0;for(let i=0;i<dates.length;i++){const exp=new Date(todayKey());exp.setDate(exp.getDate()-i);const ek=exp.toISOString().slice(0,10);if(dates.includes(ek))s++;else break;}myStreak.value=s;
+    const q3=new AV.Query(CI);q3.limit(1000);const r3=await q3.find();const cnt={};
+    r3.forEach(o=>{const n=o.get('nickname');if(!cnt[n])cnt[n]=new Set();cnt[n].add(o.get('date'));});
+    ciRank.value=Object.entries(cnt).map(([nick,set])=>({nick,days:set.size})).sort((a,b)=>b.days-a.days).slice(0,10);
   }catch(e){console.error(e);}
 }
 
-// ===== ANALYSIS =====
+// Analysis
 const analysisForm=reactive({imgUrl:'',desc:''});const analyzing=ref(false);const analysisResult=ref(null);
-
 async function startAnalysis(){
-  if(!analysisForm.desc){show('请描述笔迹特征');return;}
-  analyzing.value=true;analysisResult.value=null;
-  // Local template-based analysis
-  await new Promise(r=>setTimeout(r,1500));
-  const dims=['城府','个人品德','家庭观念','婚恋心理','思维方式','对外情绪','个人气质','个人天赋'];
+  if(!analysisForm.desc)return;analyzing.value=true;analysisResult.value=null;await new Promise(r=>setTimeout(r,1500));
   const desc=analysisForm.desc;
-  const result=dims.map(d=>{
-    let text='';
-    if(d==='城府')text=desc.includes('右倾')||desc.includes('倾斜')?'表达较为委婉，有一定社会适应性，内在想法不一定直接表露。':'观察到书写较为端正，倾向于直接表达，社会适应性中等。';
-    else if(d==='个人品德')text=desc.includes('整齐')||desc.includes('工整')?'秩序感较强，有一定责任心和自我约束力。':'书写有一定的随意性，做事可能更注重效率而非形式。';
-    else if(d==='家庭观念')text=desc.includes('行距')?'行距适中，重视个人空间与边界，有一定的秩序意识。':'从现有特征看，家庭观念的具体表现需要更多书写样本验证。';
-    else if(d==='婚恋心理')text=desc.includes('柔和')||desc.includes('轻')?'笔画偏柔和，情感表达可能较为含蓄温和。':'笔画有一定力度，情感表达可能相对直接。';
-    else if(d==='思维方式')text=desc.includes('字距适中')||desc.includes('清晰')?'思维较为清晰有条理，有一定的判断能力。':'思维方式需结合更多特征综合判断。';
-    else if(d==='对外情绪')text=desc.includes('上扬')||desc.includes('积极')?'横画上扬，对外呈现积极主动的情绪状态。':'对外情绪表现较为平稳，无明显极端倾向。';
-    else if(d==='个人气质')text=desc.includes('倾斜')?'有一定的情感波动特征，面对现实的勇气与适应力并存。':'气质表现较为平稳，偏向理性。';
-    else text='从笔画衔接和布局看，有一定的协调能力和空间直觉，创意突破方面偏保守。';
-    return{dim:d,text};
-  });
-  analysisResult.value=result;analyzing.value=false;
-  show('分析完成');
+  analysisResult.value=[{dim:'城府',text:desc.includes('右倾')?'表达委婉，有一定社会适应性。':'较为端正，倾向于直接表达。'},{dim:'个人品德',text:desc.includes('整齐')?'秩序感较强，有责任心。':'有一定随意性，注重效率。'},{dim:'家庭观念',text:'重视个人空间与边界，需更多样本验证。'},{dim:'婚恋心理',text:desc.includes('柔和')?'情感表达较为含蓄温和。':'情感表达相对直接。'},{dim:'思维方式',text:'思维较为清晰有条理。'},{dim:'对外情绪',text:desc.includes('上扬')?'对外呈积极主动状态。':'情绪表现较为平稳。'},{dim:'个人气质',text:desc.includes('倾斜')?'有一定情感波动特征。':'气质较为平稳理性。'},{dim:'个人天赋',text:'协调能力和空间直觉尚可，创意突破偏保守。'}];
+  analyzing.value=false;showToast('分析完成');
 }
 
-// ===== NEWS =====
+// News
 const newsList=ref([]);const loadingNews=ref(false);
 async function loadNews(){
-  loadingNews.value=true;
-  try{
-    const resp=await fetch('https://60s.viki.moe/?v2=1');
-    const data=await resp.json();
-    if(data.data&&data.data.topics){
-      newsList.value=data.data.topics.map((t,i)=>({title:t.title||t,url:t.url||''}));
-    }else if(data.data&&data.data.news){
-      newsList.value=data.data.news.map((n,i)=>({title:typeof n==='string'?n:n.title||'',url:n.url||''}));
-    }
-  }catch(e){
-    console.error('News fetch failed:',e);
-    newsList.value=[
-      {title:'今日热榜加载失败，请稍后重试',url:''}
-    ];
-  }
-  finally{loadingNews.value=false;}
+  loadingNews.value=true;try{
+    const resp=await fetch('https://60s.viki.moe/?v2=1');const data=await resp.json();
+    if(data.data&&data.data.topics)newsList.value=data.data.topics.map(t=>({title:t.title||'',url:t.url||''}));
+    else if(data.data&&data.data.news)newsList.value=data.data.news.map(n=>({title:typeof n==='string'?n:n.title||'',url:n.url||''}));
+  }catch(e){console.error(e);newsList.value=[{title:'热榜加载失败，请稍后重试',url:''}];}finally{loadingNews.value=false;}
 }
 
-// ===== SONG =====
+// Song
 const todaySong=ref(null);const songHistory=ref([]);const postingSong=ref(false);
 const songForm=reactive({songName:'',artist:'',reason:'',url:''});
-
 async function loadSong(){
-  if(!LCReady)return;
-  try{
-    const S=AV.Object.extend('SongRecommend');const q=new AV.Query(S);q.descending('createdAt');q.limit(20);
-    const r=await q.find();
-    const all=r.map(o=>({id:o.id,nickname:o.get('nickname'),songName:o.get('songName'),artist:o.get('artist'),reason:o.get('reason'),url:o.get('url'),date:o.get('date')||todayKey()}));
-    todaySong.value=all.find(s=>s.date===todayKey())||null;
-    songHistory.value=all.filter(s=>s.date!==todayKey()).slice(0,10);
+  if(!LCReady)return;try{const S=AV.Object.extend('SongRecommend');const q=new AV.Query(S);q.descending('createdAt');q.limit(20);
+    const r=await q.find();const all=r.map(o=>({id:o.id,nickname:o.get('nickname'),songName:o.get('songName'),artist:o.get('artist'),reason:o.get('reason'),url:o.get('url'),date:o.get('date')||todayKey()}));
+    todaySong.value=all.find(s=>s.date===todayKey())||null;songHistory.value=all.filter(s=>s.date!==todayKey()).slice(0,10);
   }catch(e){console.error(e);}
 }
-
 async function postSong(){
-  if(!songForm.songName){show('请输入歌名');return;}
-  if(!LCReady){show('LeanCloud未配置');return;}
-  postingSong.value=true;
-  try{
-    const S=AV.Object.extend('SongRecommend');const o=new S();
-    o.set('nickname',nickname.value);o.set('songName',songForm.songName);o.set('artist',songForm.artist);o.set('reason',songForm.reason);o.set('url',songForm.url);o.set('date',todayKey());
-    await o.save();show('🎵 推荐成功！');
-    songForm.songName='';songForm.artist='';songForm.reason='';songForm.url='';
-    await loadSong();
-  }catch(e){console.error(e);show('推荐失败');}
-  finally{postingSong.value=false;}
+  if(!songForm.songName||!LCReady)return;postingSong.value=true;
+  try{const o=new(AV.Object.extend('SongRecommend'))();o.set('nickname',nickname.value);o.set('songName',songForm.songName);o.set('artist',songForm.artist);o.set('reason',songForm.reason);o.set('url',songForm.url);o.set('date',todayKey());await o.save();
+    showToast('🎵 推荐成功！');songForm.songName='';songForm.artist='';songForm.reason='';songForm.url='';await loadSong();
+  }catch(e){showToast('推荐失败');}finally{postingSong.value=false;}
 }
 
-// ===== PHOTO =====
+// Photo
 const photoList=ref([]);const showPhotoForm=ref(false);const postingPhoto=ref(false);
 const photoForm=reactive({imageUrl:'',caption:''});
-
 async function loadPhoto(){
-  if(!LCReady)return;
-  try{
-    const P=AV.Object.extend('DailyPhoto');const q=new AV.Query(P);q.descending('createdAt');q.limit(20);
-    const r=await q.find();
-    photoList.value=r.map(o=>({id:o.id,nickname:o.get('nickname'),imageUrl:o.get('imageUrl'),caption:o.get('caption'),date:o.get('date')||todayKey(),likes:o.get('likes')||0}));
+  if(!LCReady)return;try{const P=AV.Object.extend('DailyPhoto');const q=new AV.Query(P);q.descending('createdAt');q.limit(20);
+    photoList.value=(await q.find()).map(o=>({id:o.id,nickname:o.get('nickname'),imageUrl:o.get('imageUrl'),caption:o.get('caption'),date:o.get('date')||todayKey()}));
   }catch(e){console.error(e);}
 }
-
 async function postPhoto(){
-  if(!photoForm.imageUrl){show('请输入图片链接');return;}
-  if(!LCReady){show('LeanCloud未配置');return;}
-  postingPhoto.value=true;
-  try{
-    const P=AV.Object.extend('DailyPhoto');const o=new P();
-    o.set('nickname',nickname.value);o.set('imageUrl',photoForm.imageUrl);o.set('caption',photoForm.caption);o.set('date',todayKey());o.set('likes',0);
-    await o.save();show('📸 发布成功！');
-    photoForm.imageUrl='';photoForm.caption='';showPhotoForm.value=false;
-    await loadPhoto();
-  }catch(e){console.error(e);show('发布失败');}
-  finally{postingPhoto.value=false;}
+  if(!photoForm.imageUrl||!LCReady)return;postingPhoto.value=true;
+  try{const o=new(AV.Object.extend('DailyPhoto'))();o.set('nickname',nickname.value);o.set('imageUrl',photoForm.imageUrl);o.set('caption',photoForm.caption);o.set('date',todayKey());o.set('likes',0);await o.save();
+    showToast('📸 发布成功！');photoForm.imageUrl='';photoForm.caption='';showPhotoForm.value=false;await loadPhoto();
+  }catch(e){showToast('发布失败');}finally{postingPhoto.value=false;}
 }
 
-// ===== POLL =====
+// Poll
 const pollList=ref([]);const showPollForm=ref(false);const postingPoll=ref(false);
 const pollForm=reactive({question:'',options:['','']});
 const votedMap=JSON.parse(localStorage.getItem('il_votes')||'{}');
-
 async function loadPoll(){
-  if(!LCReady)return;
-  try{
-    const Q=AV.Object.extend('Poll');const q=new AV.Query(Q);q.descending('createdAt');q.limit(10);
-    const r=await q.find();
-    pollList.value=r.map(o=>({id:o.id,question:o.get('question'),options:o.get('options')||[],votes:o.get('votes')||{},creator:o.get('creator'),date:o.get('date')||todayKey()}));
+  if(!LCReady)return;try{const Q=AV.Object.extend('Poll');const q=new AV.Query(Q);q.descending('createdAt');q.limit(10);
+    pollList.value=(await q.find()).map(o=>({id:o.id,question:o.get('question'),options:o.get('options')||[],votes:o.get('votes')||{},creator:o.get('creator'),date:o.get('date')||todayKey()}));
   }catch(e){console.error(e);}
 }
-
 function pollCnt(p,i){const o=p.options[i];return(p.votes&&p.votes[o])?p.votes[o].length:0;}
 function pollTotal(p){let t=0;if(p.votes)Object.values(p.votes).forEach(v=>t+=v.length);return t;}
 function pollPct(p,i){const total=pollTotal(p);return total?Math.round(pollCnt(p,i)/total*100):0;}
-
 async function votePoll(p,i){
-  if(votedMap[p.id])return;
-  const opt=p.options[i];
-  if(!p.votes)p.votes={};
-  if(!p.votes[opt])p.votes[opt]=[];
-  p.votes[opt].push(nickname.value);
-  votedMap[p.id]=opt;localStorage.setItem('il_votes',JSON.stringify(votedMap));
-  if(!LCReady)return;
-  try{const o=AV.Object.createWithoutData('Poll',p.id);o.set('votes',p.votes);await o.save();}catch(e){console.error(e);}
+  if(votedMap[p.id])return;const opt=p.options[i];if(!p.votes)p.votes={};if(!p.votes[opt])p.votes[opt]=[];
+  p.votes[opt].push(nickname.value);votedMap[p.id]=opt;localStorage.setItem('il_votes',JSON.stringify(votedMap));
+  if(!LCReady)return;try{const o=AV.Object.createWithoutData('Poll',p.id);o.set('votes',p.votes);await o.save();}catch(e){}
 }
-
 async function createPoll(){
-  if(!pollForm.question||pollForm.options.filter(o=>o).length<2){show('至少填问题和2个选项');return;}
-  if(!LCReady){show('LeanCloud未配置');return;}
-  postingPoll.value=true;
-  try{
-    const Q=AV.Object.extend('Poll');const o=new Q();
-    o.set('question',pollForm.question);o.set('options',pollForm.options.filter(x=>x));o.set('votes',{});o.set('creator',nickname.value);o.set('date',todayKey());
-    await o.save();show('投票已创建！');
-    pollForm.question='';pollForm.options=['',''];showPollForm.value=false;
-    await loadPoll();
-  }catch(e){console.error(e);show('创建失败');}
-  finally{postingPoll.value=false;}
+  if(!pollForm.question||pollForm.options.filter(o=>o).length<2){showToast('至少填问题和2个选项');return;}if(!LCReady)return;postingPoll.value=true;
+  try{const o=new(AV.Object.extend('Poll'))();o.set('question',pollForm.question);o.set('options',pollForm.options.filter(x=>x));o.set('votes',{});o.set('creator',nickname.value);o.set('date',todayKey());await o.save();
+    showToast('投票已创建！');pollForm.question='';pollForm.options=['',''];showPollForm.value=false;await loadPoll();
+  }catch(e){showToast('创建失败');}finally{postingPoll.value=false;}
 }
 
-// ===== GAMES =====
+// Games
 const gameTab=ref('mood');
 const moods=['☀️','🌤','⛅','🌥','☁️','🌧','⛈','🌈','🌙','💫','🔥','❄️'];
-const myMood=ref('');
-const moodBoard=ref([]);
-const chainWord=ref('一心一意');
-const chainInput=ref('');
-const chainHistory=ref([]);
-const truthQ=ref('');
-const dailyQ=ref('');
-const dqAnswer=ref('');
-const dqAnswers=ref([]);
+const myMood=ref('');const moodBoard=ref([]);
+const chainWord=ref('一心一意');const chainInput=ref('');const chainHistory=ref([]);
+const truthQ=ref('');const dailyQ=ref('');const dqAnswer=ref('');const dqAnswers=ref([]);
 
-function todayDailyQ(){
-  const qs=['如果可以拥有一种超能力，你想要什么？','你最难忘的一次旅行是哪次？','如果明天是世界末日，你今天会做什么？','你做过最勇敢的事是什么？','如果可以回到过去改变一件事，你会改变什么？','你最喜欢朋友身上的什么特质？','最近让你开心的一件小事是什么？','如果你能和任何人共进晚餐，你会选谁？','你有什么一直想做但没做的事？','你觉得什么是真正的友谊？'];
-  const idx=new Date().getDate()%qs.length;
-  return qs[idx];
+const dailyQs=['如果可以拥有一种超能力，你想要什么？','你最难忘的一次旅行是哪次？','如果明天是世界末日，你今天会做什么？','你做过最勇敢的事是什么？','如果可以回到过去改变一件事，你会改变什么？','你最喜欢朋友身上的什么特质？','最近让你开心的一件小事是什么？','如果你能和任何人共进晚餐，你会选谁？'];
+dailyQ.value=dailyQs[new Date().getDate()%dailyQs.length];
+
+const truths=['你手机里最舍不得删的一张照片是什么？','你偷偷做过什么不好意思让朋友知道的事？','你最想对在座某人说的一句话？','你最近一次哭是因为什么？','你觉得自己最大的缺点是什么？','你有没有暗恋过在座的某个人？','你最尴尬的一次经历是什么？','你做过最疯狂的事是什么？','你最害怕什么？','你觉得在座谁最靠谱？'];
+function genTruth(){truthQ.value=truths[Math.floor(Math.random()*truths.length)];}
+
+async function setMood(m){myMood.value=m;if(!LCReady)return;try{
+  const M=AV.Object.extend('MoodEntry');const q=new AV.Query(M);q.equalTo('nickname',nickname.value);q.equalTo('date',todayKey());
+  const old=await q.find();if(old.length)await AV.Object.destroyAll(old);
+  const o=new M();o.set('nickname',nickname.value);o.set('mood',m);o.set('date',todayKey());await o.save();
+  await loadMood();showToast('心情已记录 '+m);}catch(e){console.error(e);}
 }
+async function loadMood(){if(!LCReady)return;try{
+  const M=AV.Object.extend('MoodEntry');const q=new AV.Query(M);q.equalTo('date',todayKey());q.descending('createdAt');
+  const r=await q.find();moodBoard.value=r.map(o=>({nick:o.get('nickname'),mood:o.get('mood')}));
+  const mine=r.find(o=>o.get('nickname')===nickname.value);if(mine)myMood.value=mine.get('mood');
+}catch(e){console.error(e);}}
 
-function genTruth(){
-  const truths=['你手机里最舍不得删的一张照片是什么？','你偷偷做过什么不好意思让朋友知道的事？','你最想对在座某人说的一句话？','你最近一次哭是因为什么？','你觉得自己最大的缺点是什么？','你有没有暗恋过在座的某个人？','你最尴尬的一次经历是什么？','你做过最疯狂的事是什么？','你最害怕什么？','你觉得自己在朋友眼中是什么样的人？','你有什么不为人知的小癖好？','你最想改变自己的哪一点？','你最后一次撒谎是什么时候？','你觉得在座谁最靠谱？','你最想实现的一个愿望是什么？'];
-  truthQ.value=truths[Math.floor(Math.random()*truths.length)];
+function submitChain(){const w=chainInput.value.trim();if(!w)return;
+  if(w[0]!==chainWord.value.slice(-1)){showToast('要以「'+chainWord.value.slice(-1)+'」开头哦');return;}
+  chainHistory.value.push({word:w,nick:nickname.value});chainWord.value=w;chainInput.value='';showToast('接得好！');
 }
+function submitDQ(){if(!dqAnswer.value)return;dqAnswers.value.unshift({id:Date.now(),nick:nickname.value,answer:dqAnswer.value,ts:new Date()});dqAnswer.value='';showToast('回答已提交！');}
 
-async function setMood(m){
-  myMood.value=m;
-  if(!LCReady)return;
-  try{
-    const M=AV.Object.extend('MoodEntry');
-    // Delete old today entry
-    const q=new AV.Query(M);q.equalTo('nickname',nickname.value);q.equalTo('date',todayKey());
-    const old=await q.find();if(old.length)await AV.Object.destroyAll(old);
-    const o=new M();o.set('nickname',nickname.value);o.set('mood',m);o.set('date',todayKey());await o.save();
-    await loadMood();show('心情已记录 '+m);
-  }catch(e){console.error(e);}
-}
-
-async function loadMood(){
-  if(!LCReady)return;
-  try{
-    const M=AV.Object.extend('MoodEntry');const q=new AV.Query(M);q.equalTo('date',todayKey());q.descending('createdAt');
-    const r=await q.find();moodBoard.value=r.map(o=>({nick:o.get('nickname'),mood:o.get('mood')}));
-    const mine=r.find(o=>o.get('nickname')===nickname.value);if(mine)myMood.value=mine.get('mood');
-  }catch(e){console.error(e);}
-}
-
-function submitChain(){
-  const w=chainInput.value.trim();if(!w){show('请输入成语');return;}
-  const last=chainWord.value.slice(-1);const first=w[0];
-  if(first!==last){show('要以「'+last+'」开头哦');return;}
-  chainHistory.value.push({word:w,nick:nickname.value});chainWord.value=w;chainInput.value='';
-  show('接得好！');
-}
-
-function submitDQ(){
-  if(!dqAnswer.value)return;
-  dqAnswers.value.unshift({id:Date.now(),nick:nickname.value,answer:dqAnswer.value,ts:new Date()});
-  dqAnswer.value=show('回答已提交！');
-}
-
-// ===== AMBIENT =====
 function toggleAmbient(){
   if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   if(ambientOn.value){if(ambientOsc){ambientOsc.stop();ambientOsc=null;}ambientOn.value=false;return;}
-  // Create ocean-like white noise
-  const bufferSize=2*audioCtx.sampleRate;const buffer=audioCtx.createBuffer(1,bufferSize,audioCtx.sampleRate);const data=buffer.getChannelData(0);
-  for(let i=0;i<bufferSize;i++)data[i]=(Math.random()*2-1)*0.15;
-  const src=audioCtx.createBufferSource();src.buffer=buffer;src.loop=true;
-  const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=400;
-  const gain=audioCtx.createGain();gain.gain.value=0.3;
-  src.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);src.start();
+  const bs=2*audioCtx.sampleRate;const buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate);const d=buf.getChannelData(0);
+  for(let i=0;i<bs;i++)d[i]=(Math.random()*2-1)*0.15;
+  const src=audioCtx.createBufferSource();src.buffer=buf;src.loop=true;
+  const flt=audioCtx.createBiquadFilter();flt.type='lowpass';flt.frequency.value=400;
+  const gn=audioCtx.createGain();gn.gain.value=0.3;src.connect(flt);flt.connect(gn);gn.connect(audioCtx.destination);src.start();
   ambientOsc=src;ambientOn.value=true;
 }
 
-// ===== INIT =====
-dailyQ.value=todayDailyQ();
-
+// Init
 onMounted(()=>{
-  setTimeout(()=>{showSplash.value=false;},2500);
+  setTimeout(()=>showSplash.value=false,2500);
   if(nickname.value){
-    loadFeed();loadCheckin();loadNews();loadSong();loadPhoto();loadPoll();loadMood();
+    try{loadFeed();}catch(e){}
+    try{loadCheckin();}catch(e){}
+    try{loadNews();}catch(e){}
+    try{loadSong();}catch(e){}
+    try{loadPhoto();}catch(e){}
+    try{loadPoll();}catch(e){}
+    try{loadMood();}catch(e){}
   }
 });
 
-// Seasonal tint
-const month=new Date().getMonth();
-if(month>=2&&month<=4)document.body.style.filter='hue-rotate(5deg) saturate(1.05)'; // spring
-else if(month>=5&&month<=7)document.body.style.filter='hue-rotate(-5deg) saturate(1.1)'; // summer
-else if(month>=8&&month<=10)document.body.style.filter='sepia(0.08) saturate(1.05)'; // autumn
-
 return{
-  nickname,nickInput,tab,showSplash,toast,ambientOn,heroSub,
-  setNick,switchTab,fmtTime,fmtDate,
-  feedList,loadingFeed,posting,liked,feedForm,loadFeed,postFeed,likeFeed,
-  ciTypes,todayCI,todayCheckins,ciRank,myStreak,ciLabel,doCheckin,loadCheckin,
-  analysisForm,analyzing,analysisResult,startAnalysis,
-  newsList,loadingNews,loadNews,
-  todaySong,songHistory,postingSong,songForm,loadSong,postSong,
-  photoList,showPhotoForm,postingPhoto,photoForm,loadPhoto,postPhoto,
-  pollList,showPollForm,postingPoll,pollForm,loadPoll,pollCnt,pollTotal,pollPct,votePoll,createPoll,
-  gameTab,moods,myMood,moodBoard,chainWord,chainInput,chainHistory,truthQ,dailyQ,dqAnswer,dqAnswers,
-  setMood,loadMood,submitChain,genTruth,submitDQ,toggleAmbient
+nickname,nickInput,tab,showSplash,toastMsg,ambientOn,heroSub,
+setNick,switchTab,fmtTime,fmtDate,
+feedList,loadingFeed,posting,liked,feedForm,loadFeed,postFeed,likeFeed,
+ciTypes,todayCI,todayCheckins,ciRank,myStreak,ciLabel,doCheckin,loadCheckin,
+analysisForm,analyzing,analysisResult,startAnalysis,
+newsList,loadingNews,loadNews,
+todaySong,songHistory,postingSong,songForm,loadSong,postSong,
+photoList,showPhotoForm,postingPhoto,photoForm,loadPhoto,postPhoto,
+pollList,showPollForm,postingPoll,pollForm,loadPoll,pollCnt,pollTotal,pollPct,votePoll,createPoll,
+gameTab,moods,myMood,moodBoard,chainWord,chainInput,chainHistory,truthQ,dailyQ,dqAnswer,dqAnswers,
+setMood,loadMood,submitChain,genTruth,submitDQ,toggleAmbient
 };
 }
 }).mount('#app');
+}catch(e){document.getElementById('app').innerHTML='<div style="padding:40px;text-align:center;color:#c33"><h2>加载失败</h2><p>'+e.message+'</p></div>';console.error(e);}
 </script>
 </body>
 </html>
