@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>岛屿来信</title>
-<script src="https://cdn.bootcdn.net/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/3.4.21/vue.global.prod.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -350,14 +350,14 @@ html{font-size:16px}body{font-family:sans-serif;color:var(--ink);background:var(
 try{
 const{createApp,ref,reactive,computed,onMounted}=Vue;
 
-const LC_CFG={APP_ID:'你的_APP_ID',APP_KEY:'你的_APP_KEY',SERVER_URL:'你的_SERVER_URL'};
-let LCReady=false,LC=null;
+const SB_URL='https://ktaollniglejspwloar.supabase.co';const SB_KEY='sb_publishable_ZUmQxTX3cJ3UXnJEPaWjvw_snUeaK78';
+let SB=null,SBReady=false;
 try{
-  if(window.AV&&LC_CFG.APP_ID&&LC_CFG.APP_ID!=='你的_APP_ID'){
-    AV.init({appId:LC_CFG.APP_ID,appKey:LC_CFG.APP_KEY,serverURL:LC_CFG.SERVER_URL});
-    LC=AV.Object.extend('Moment');LCReady=true;
+  if(window.supabase&&SB_KEY){
+    SB=supabase.createClient(SB_URL,SB_KEY);SBReady=true;
+
   }
-}catch(e){console.warn('LeanCloud init skipped:',e);}
+}catch(e){console.warn('Supabase init skipped:',e);}
 
 createApp({
 setup(){
